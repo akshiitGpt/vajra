@@ -3,9 +3,10 @@ import path from "node:path";
 
 import { GitHubClient } from "./github";
 import { CommandResult, CommandRunner } from "./process";
+import { executeScoutPlanValidation } from "./scout-plan-validator";
 import { GitHubConfig, PullRequestMetadata, StageMetadata } from "./types";
 
-type BuiltInPrCommand = "publish-pr" | "update-pr";
+type BuiltInPrCommand = "publish-pr" | "update-pr" | "validate-scout-plan";
 
 export interface BuiltInToolExecutionResult extends CommandResult {
   resultMetadata?: StageMetadata;
@@ -23,7 +24,7 @@ function tokenizeCommand(command: string): string[] {
 
 function parseArgs(command: string): { subcommand: BuiltInPrCommand; args: Map<string, string | true> } | null {
   const tokens = tokenizeCommand(command);
-  if (tokens[0] !== "vajra" || (tokens[1] !== "publish-pr" && tokens[1] !== "update-pr")) {
+  if (tokens[0] !== "vajra" || (tokens[1] !== "publish-pr" && tokens[1] !== "update-pr" && tokens[1] !== "validate-scout-plan")) {
     return null;
   }
 
@@ -226,6 +227,10 @@ export async function executeBuiltInVajraTool(opts: {
   const parsed = parseArgs(opts.command);
   if (!parsed) {
     return null;
+  }
+
+  if (parsed.subcommand === "validate-scout-plan") {
+    return executeScoutPlanValidation(opts.cwd);
   }
 
   if (!opts.githubConfig) {

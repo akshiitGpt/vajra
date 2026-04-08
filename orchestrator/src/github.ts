@@ -364,6 +364,13 @@ export class GitHubClient {
     return payload.map((entry) => normalizeReviewComment(entry));
   }
 
+  async addIssueComment(repository: string, number: number, body: string): Promise<void> {
+    await this.requestJson<Record<string, unknown>>(`/repos/${repository}/issues/${number}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+  }
+
   private async paginate<T>(path: string): Promise<T[]> {
     const results: T[] = [];
     for (let page = 1; page <= 10; page += 1) {

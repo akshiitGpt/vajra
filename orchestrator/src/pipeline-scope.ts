@@ -122,6 +122,11 @@ export function graphStageScope(opts: {
   completedNodes: string[];
   dispatchPlan?: DispatchPlan | null;
   prompt?: string;
+  multiRepoContext?: {
+    crossRepoNotes: string;
+    thisRepo: { repository: string; reasoning: string; scopeSummary: string };
+    otherRepos: Array<{ repository: string; reasoning: string; scopeSummary: string }>;
+  } | null;
 }): Record<string, unknown> {
   // Prompt scope is intentionally artifact-first. Stages expose status and workspace-visible
   // artifact paths, not raw stdout/stderr transcripts from prior stages.
@@ -171,5 +176,10 @@ export function graphStageScope(opts: {
     target_branch: opts.dispatchPlan?.targetBranch ?? "main",
     merge_strategy: opts.dispatchPlan?.mergeStrategy ?? "pr-only",
     prompt: opts.prompt ?? "",
+    multi_repo: opts.multiRepoContext ? {
+      cross_repo_notes: opts.multiRepoContext.crossRepoNotes,
+      this_repo: new ObjectLookupDrop(opts.multiRepoContext.thisRepo as unknown as Record<string, StageMetadataValue>),
+      other_repos: opts.multiRepoContext.otherRepos.map(r => new ObjectLookupDrop(r as unknown as Record<string, StageMetadataValue>)),
+    } : new MissingLookupDrop(),
   };
 }
