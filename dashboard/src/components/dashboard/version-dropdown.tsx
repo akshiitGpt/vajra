@@ -99,7 +99,7 @@ export function VersionDropdown({
 
   if (versions.length === 0 && !onCreateNew) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 text-[13px] text-[var(--d-text-tertiary)] bg-[var(--d-bg-subtle)] rounded-lg border border-dashed border-[var(--d-border)]">
+      <div className="flex items-center gap-2 px-3 py-1.5 text-[13px] text-[var(--d-text-tertiary)] bg-[var(--d-bg-subtle)] border border-dashed border-[var(--d-border)]">
         {emptyMessage}
       </div>
     );
@@ -119,7 +119,7 @@ export function VersionDropdown({
           type="button"
           disabled={isDisabled}
           className={cn(
-            "flex items-center gap-2 px-3 rounded-lg border transition-colors",
+            "flex items-center gap-2 px-3 border transition-colors",
             size === "sm" ? "py-1.5 text-[13px]" : "py-2 text-[14px]",
             open
               ? "border-[var(--d-primary)] bg-[var(--d-primary)]/5"
@@ -131,7 +131,7 @@ export function VersionDropdown({
             {selected?.label ?? placeholder}
           </span>
           {selected?.isActive && (
-            <span className="px-1.5 py-0.5 text-[10px] font-medium text-[var(--d-success)] bg-[var(--d-success)]/10 rounded">
+            <span className="px-1.5 py-0.5 text-[10px] font-medium text-[var(--d-success)] bg-[var(--d-success)]/10">
               Active
             </span>
           )}
@@ -212,7 +212,7 @@ export function VersionDropdown({
                   </span>
                 )}
                 {version.isActive && (
-                  <span className="px-1 py-0.5 text-[9px] font-semibold text-[var(--d-success)] bg-[var(--d-success)]/10 rounded uppercase">
+                  <span className="px-1 py-0.5 text-[9px] font-semibold text-[var(--d-success)] bg-[var(--d-success)]/10 uppercase">
                     Active
                   </span>
                 )}

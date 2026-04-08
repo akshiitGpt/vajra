@@ -140,14 +140,14 @@ function AgentCard({
         <span className="text-[13px] font-semibold text-[var(--d-text-primary)]">{name}</span>
       </div>
       <div className="flex items-center gap-2 mt-1">
-        <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-[var(--d-bg-page)] text-[var(--d-text-secondary)] border border-[var(--d-border-subtle)]">
+        <span className="text-[11px] font-mono px-1.5 py-0.5 bg-[var(--d-bg-page)] text-[var(--d-text-secondary)] border border-[var(--d-border-subtle)]">
           {agent.backend}
         </span>
         <span className="text-[11px] font-mono text-[var(--d-text-tertiary)]">
           {agent.model}
         </span>
         {agent.reasoningEffort && (
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--d-bg-page)] text-[var(--d-text-tertiary)] border border-[var(--d-border-subtle)]">
+          <span className="text-[10px] font-medium px-1.5 py-0.5 bg-[var(--d-bg-page)] text-[var(--d-text-tertiary)] border border-[var(--d-border-subtle)]">
             {agent.reasoningEffort}
           </span>
         )}
@@ -162,7 +162,7 @@ function AgentCard({
           {references.map((ref) => (
             <span
               key={ref}
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--d-info-bg)] text-[var(--d-info-text)]"
+              className="text-[10px] font-medium px-1.5 py-0.5 bg-[var(--d-info-bg)] text-[var(--d-info-text)]"
             >
               {ref}
             </span>
@@ -197,7 +197,7 @@ function Select({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         className={cn(
-          "w-full appearance-none rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2 pr-8",
+          "w-full appearance-none border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2 pr-8",
           "text-[13px] text-[var(--d-text-primary)]",
           "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
           "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -328,7 +328,7 @@ function AgentEditor({
 
         {/* Error */}
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
+          <div className="mb-4 px-4 py-3 bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
             <p className="text-[13px] text-[var(--d-error-text)]">{error}</p>
           </div>
         )}
@@ -344,7 +344,7 @@ function AgentEditor({
               disabled={!isNew}
               placeholder="planner"
               className={cn(
-                "w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                "w-full border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                 "text-[13px] font-mono text-[var(--d-text-primary)]",
                 "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                 "disabled:opacity-60 disabled:bg-[var(--d-bg-subtle)]",
@@ -380,7 +380,7 @@ function AgentEditor({
                   onChange={(e) => onChange({ model: e.target.value })}
                   placeholder="gpt-5.4"
                   className={cn(
-                    "w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                    "w-full border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                     "text-[13px] font-mono text-[var(--d-text-primary)]",
                     "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                   )}
@@ -406,7 +406,7 @@ function AgentEditor({
                   onChange={(e) => onChange({ reasoningEffort: e.target.value })}
                   placeholder="xhigh"
                   className={cn(
-                    "w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                    "w-full border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                     "text-[13px] font-mono text-[var(--d-text-primary)]",
                     "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                   )}
@@ -423,7 +423,7 @@ function AgentEditor({
               onChange={(e) => onChange({ timeoutMs: e.target.value ? Number(e.target.value) : undefined })}
               placeholder="600000"
               className={cn(
-                "w-48 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                "w-48 border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                 "text-[13px] font-mono text-[var(--d-text-primary)]",
                 "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
               )}
@@ -432,7 +432,7 @@ function AgentEditor({
 
           {/* Prompt — the main event */}
           <Field label="Prompt" hint="Markdown prompt template. Reference skills by name, e.g. 'Use the vajra-plan skill.'">
-            <div className="border border-[var(--d-border)] rounded-lg overflow-hidden bg-[var(--d-bg-surface)]">
+            <div className="border border-[var(--d-border)] overflow-hidden bg-[var(--d-bg-surface)]">
               <MarkdownEditor
                 value={draft.prompt}
                 onChange={(v) => onChange({ prompt: v })}
@@ -635,8 +635,8 @@ export default function VajraAgentsPage() {
               <div className="px-4 py-6">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="py-3 border-b border-[var(--d-border-subtle)]">
-                    <div className="h-3.5 w-24 bg-[var(--d-bg-active)] rounded mb-2" />
-                    <div className="h-3 w-36 bg-[var(--d-bg-active)] rounded" />
+                    <div className="h-3.5 w-24 bg-[var(--d-bg-active)] mb-2" />
+                    <div className="h-3 w-36 bg-[var(--d-bg-active)]" />
                   </div>
                 ))}
               </div>

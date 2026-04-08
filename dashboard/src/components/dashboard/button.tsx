@@ -120,9 +120,9 @@ const variantStyles: Record<ButtonVariant, string> = {
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "h-7 px-2.5 text-[12px] rounded-md",
-  md: "h-8 px-3 text-[13px] rounded-lg",
-  lg: "h-10 px-4 text-[14px] rounded-lg",
+  sm: "h-7 px-2.5 text-[12px]",
+  md: "h-8 px-3 text-[13px]",
+  lg: "h-10 px-4 text-[14px]",
 };
 
 const iconSizeStyles: Record<ButtonSize, string> = {

@@ -42,7 +42,7 @@ function StageDot({ status }: { status: StageStatus }) {
       {isRunning && (
         <span
           className={cn(
-            "absolute inset-0 rounded-full opacity-30 animate-ping",
+            "absolute inset-0 opacity-30 animate-ping",
             dotColor(status),
           )}
         />
@@ -55,7 +55,7 @@ function StageDot({ status }: { status: StageStatus }) {
       ) : (
         <span
           className={cn(
-            "w-[7px] h-[7px] rounded-full transition-colors duration-200",
+            "w-[7px] h-[7px] transition-colors duration-200",
             dotColor(status),
             isRunning && "ring-2 ring-[var(--d-primary)]/20",
             isWaitHuman && "ring-2 ring-[var(--d-warning)]/20",

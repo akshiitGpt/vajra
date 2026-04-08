@@ -100,12 +100,12 @@ function StepCard({
       )}
 
       <div className={cn(
-        "relative rounded-xl border bg-[var(--d-bg-surface)] transition-all duration-150",
+        "relative border bg-[var(--d-bg-surface)] transition-all duration-150",
         "border-[var(--d-border-subtle)] hover:border-[var(--d-border)]",
         "shadow-[var(--d-shadow-sm)]",
       )}>
         {/* Step number pill */}
-        <div className="absolute -left-3 top-4 w-6 h-6 rounded-full bg-[var(--d-bg-page)] border border-[var(--d-border)] flex items-center justify-center">
+        <div className="absolute -left-3 top-4 w-6 h-6 bg-[var(--d-bg-page)] border border-[var(--d-border)] flex items-center justify-center">
           <span className="text-[11px] font-semibold text-[var(--d-text-secondary)]">{index + 1}</span>
         </div>
 
@@ -117,14 +117,14 @@ function StepCard({
               <button
                 onClick={onMoveUp}
                 disabled={index === 0}
-                className="p-0.5 rounded text-[var(--d-text-disabled)] hover:text-[var(--d-text-secondary)] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-0.5 text-[var(--d-text-disabled)] hover:text-[var(--d-text-secondary)] disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronUpIcon className="w-3 h-3" />
               </button>
               <button
                 onClick={onMoveDown}
                 disabled={index === totalSteps - 1}
-                className="p-0.5 rounded text-[var(--d-text-disabled)] hover:text-[var(--d-text-secondary)] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-0.5 text-[var(--d-text-disabled)] hover:text-[var(--d-text-secondary)] disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronDownIcon className="w-3 h-3" />
               </button>
@@ -136,7 +136,7 @@ function StepCard({
                 value={step.agent}
                 onChange={(e) => onUpdate({ agent: e.target.value })}
                 className={cn(
-                  "w-full appearance-none rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2 pr-8",
+                  "w-full appearance-none border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2 pr-8",
                   "text-[13px] text-[var(--d-text-primary)] font-medium",
                   "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                   !step.agent && "text-[var(--d-text-tertiary)]",
@@ -157,7 +157,7 @@ function StepCard({
               onChange={(e) => onUpdate({ label: e.target.value })}
               placeholder="Display label"
               className={cn(
-                "w-36 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                "w-36 border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                 "text-[13px] text-[var(--d-text-primary)]",
                 "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                 "placeholder:text-[var(--d-text-disabled)]",
@@ -169,7 +169,7 @@ function StepCard({
               onClick={onRemove}
               disabled={totalSteps <= 1}
               className={cn(
-                "p-1.5 rounded-lg transition-colors",
+                "p-1.5 transition-colors",
                 "text-[var(--d-text-disabled)] hover:text-[var(--d-error)] hover:bg-[var(--d-error-bg)]",
                 "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-[var(--d-text-disabled)] disabled:hover:bg-transparent",
                 "opacity-0 group-hover:opacity-100",
@@ -190,7 +190,7 @@ function StepCard({
                 onChange={(e) => onUpdate({ nodeId: e.target.value })}
                 placeholder="plan"
                 className={cn(
-                  "w-full rounded-md border border-[var(--d-border-subtle)] bg-[var(--d-bg-subtle)] px-2.5 py-1.5",
+                  "w-full border border-[var(--d-border-subtle)] bg-[var(--d-bg-subtle)] px-2.5 py-1.5",
                   "text-[12px] font-mono text-[var(--d-text-secondary)]",
                   "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                   "placeholder:text-[var(--d-text-disabled)]",
@@ -207,7 +207,7 @@ function StepCard({
                 onChange={(e) => onUpdate({ artifactPath: e.target.value })}
                 placeholder=".vajra/plan.md"
                 className={cn(
-                  "w-full rounded-md border border-[var(--d-border-subtle)] bg-[var(--d-bg-subtle)] px-2.5 py-1.5",
+                  "w-full border border-[var(--d-border-subtle)] bg-[var(--d-bg-subtle)] px-2.5 py-1.5",
                   "text-[12px] font-mono text-[var(--d-text-secondary)]",
                   "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                   "placeholder:text-[var(--d-text-disabled)]",
@@ -232,7 +232,7 @@ function StepCard({
                     });
                   }}
                   className={cn(
-                    "w-full appearance-none rounded-md border border-[var(--d-border-subtle)] bg-[var(--d-bg-subtle)] px-2.5 py-1",
+                    "w-full appearance-none border border-[var(--d-border-subtle)] bg-[var(--d-bg-subtle)] px-2.5 py-1",
                     "text-[12px] text-[var(--d-text-secondary)]",
                     "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                   )}
@@ -291,7 +291,7 @@ function LabelChips({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-1.5 min-h-[36px] rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-2.5 py-1.5",
+        "flex flex-wrap items-center gap-1.5 min-h-[36px] border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-2.5 py-1.5",
         "focus-within:ring-2 focus-within:ring-[var(--d-border-focus)]",
       )}
       onClick={() => inputRef.current?.focus()}
@@ -299,7 +299,7 @@ function LabelChips({
       {labels.map((label) => (
         <span
           key={label}
-          className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-md bg-[var(--d-info-bg)] text-[var(--d-info-text)]"
+          className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 bg-[var(--d-info-bg)] text-[var(--d-info-text)]"
         >
           {label}
           <button
@@ -466,7 +466,7 @@ function WorkflowBuilder({
 
         {/* Error */}
         {error && (
-          <div className="mb-6 px-4 py-3 rounded-xl bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
+          <div className="mb-6 px-4 py-3 bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
             <p className="text-[13px] text-[var(--d-error-text)]">{error}</p>
           </div>
         )}
@@ -490,7 +490,7 @@ function WorkflowBuilder({
                 disabled={!isNew}
                 placeholder="code-and-review"
                 className={cn(
-                  "w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                  "w-full border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                   "text-[14px] font-mono text-[var(--d-text-primary)]",
                   "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                   "disabled:opacity-60 disabled:bg-[var(--d-bg-subtle)]",
@@ -530,7 +530,7 @@ function WorkflowBuilder({
                 placeholder="Plan, implement, test, and ship a Linear ticket as a PR"
                 rows={3}
                 className={cn(
-                  "w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                  "w-full border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                   "text-[13px] text-[var(--d-text-primary)] leading-relaxed",
                   "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                   "resize-y placeholder:text-[var(--d-text-disabled)]",
@@ -556,7 +556,7 @@ function WorkflowBuilder({
 
           {/* Start node indicator */}
           <div className="flex items-center gap-2 mb-2 pl-1">
-            <div className="w-2 h-2 rounded-full bg-[var(--d-text-tertiary)]" />
+            <div className="w-2 h-2 bg-[var(--d-text-tertiary)]" />
             <span className="text-[11px] font-medium text-[var(--d-text-tertiary)]">Start</span>
           </div>
 
@@ -582,7 +582,7 @@ function WorkflowBuilder({
             <button
               onClick={addStep}
               className={cn(
-                "w-full py-3 rounded-xl border-2 border-dashed border-[var(--d-border-subtle)]",
+                "w-full py-3 border-2 border-dashed border-[var(--d-border-subtle)]",
                 "text-[13px] font-medium text-[var(--d-text-tertiary)]",
                 "hover:border-[var(--d-border)] hover:text-[var(--d-text-secondary)] hover:bg-[var(--d-bg-hover)]",
                 "transition-all duration-150",
@@ -598,7 +598,7 @@ function WorkflowBuilder({
               <div className="w-px h-6 bg-[var(--d-border)]" />
             </div>
             <div className="flex items-center gap-2 pl-1">
-              <div className="w-2 h-2 rounded-sm bg-[var(--d-text-tertiary)]" />
+              <div className="w-2 h-2 bg-[var(--d-text-tertiary)]" />
               <span className="text-[11px] font-medium text-[var(--d-text-tertiary)]">Complete</span>
             </div>
           </div>
@@ -622,7 +622,7 @@ function WorkflowBuilder({
                 onChange={(e) => onChange({ successState: e.target.value })}
                 placeholder="Done"
                 className={cn(
-                  "w-48 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                  "w-48 border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                   "text-[13px] text-[var(--d-text-primary)]",
                   "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                 )}
@@ -757,7 +757,7 @@ function AdvancedEditor({
 
 
         {error && (
-          <div className="mb-6 px-4 py-3 rounded-xl bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
+          <div className="mb-6 px-4 py-3 bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
             <p className="text-[13px] text-[var(--d-error-text)]">{error}</p>
           </div>
         )}
@@ -774,7 +774,7 @@ function AdvancedEditor({
               onChange={(e) => onNameChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
               placeholder="code-and-review"
               className={cn(
-                "w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                "w-full border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                 "text-[14px] font-mono text-[var(--d-text-primary)]",
                 "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
               )}
@@ -809,7 +809,7 @@ function AdvancedEditor({
             rows={20}
             spellCheck={false}
             className={cn(
-              "w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-4 py-3",
+              "w-full border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-4 py-3",
               "text-[13px] font-mono text-[var(--d-text-primary)] leading-relaxed",
               "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
               "resize-y",
@@ -828,7 +828,7 @@ function AdvancedEditor({
               value={successState}
               onChange={(e) => onSuccessStateChange(e.target.value)}
               className={cn(
-                "w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                "w-full border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                 "text-[13px] text-[var(--d-text-primary)]",
                 "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
               )}
@@ -876,7 +876,7 @@ function WorkflowCard({
           {workflow.name}
         </span>
         {workflow.isDefault && (
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--d-info-bg)] text-[var(--d-info-text)]">
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-[var(--d-info-bg)] text-[var(--d-info-text)]">
             default
           </span>
         )}
@@ -897,7 +897,7 @@ function WorkflowCard({
           {workflow.labels.map((label) => (
             <span
               key={label}
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--d-info-bg)] text-[var(--d-info-text)]"
+              className="text-[10px] font-medium px-1.5 py-0.5 bg-[var(--d-info-bg)] text-[var(--d-info-text)]"
             >
               {label}
             </span>
@@ -1206,8 +1206,8 @@ export default function VajraWorkflowsPage() {
               <div className="px-4 py-6">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="py-3 border-b border-[var(--d-border-subtle)]">
-                    <div className="h-3.5 w-24 bg-[var(--d-bg-active)] rounded mb-2" />
-                    <div className="h-3 w-32 bg-[var(--d-bg-active)] rounded" />
+                    <div className="h-3.5 w-24 bg-[var(--d-bg-active)] mb-2" />
+                    <div className="h-3 w-32 bg-[var(--d-bg-active)]" />
                   </div>
                 ))}
               </div>

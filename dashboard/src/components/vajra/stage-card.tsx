@@ -42,7 +42,7 @@ function Badge({ children, className }: { children: React.ReactNode; className?:
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium",
+        "inline-flex items-center px-2 py-0.5 text-[11px] font-medium",
         "bg-[var(--d-bg-page)] text-[var(--d-text-secondary)] border border-[var(--d-border-subtle)]",
         className,
       )}
@@ -60,14 +60,14 @@ function CodeBlock({ content, maxLines = 80 }: { content: string; maxLines?: num
 
   return (
     <div className="relative">
-      <pre className="text-[12px] font-mono leading-relaxed text-[var(--d-text-primary)] bg-[var(--d-bg-page)] rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-words max-h-[500px] overflow-y-auto">
+      <pre className="text-[12px] font-mono leading-relaxed text-[var(--d-text-primary)] bg-[var(--d-bg-page)] p-4 overflow-x-auto whitespace-pre-wrap break-words max-h-[500px] overflow-y-auto">
         {displayContent}
       </pre>
       {truncated && (
         <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-[var(--d-bg-page)] to-transparent rounded-b-lg flex items-end justify-center pb-2">
           <button
             onClick={() => setExpanded(true)}
-            className="text-[12px] font-medium text-[var(--d-text-link)] hover:text-[var(--d-text-link-hover)] bg-white px-3 py-1 rounded-full shadow-sm border border-[var(--d-border-subtle)]"
+            className="text-[12px] font-medium text-[var(--d-text-link)] hover:text-[var(--d-text-link-hover)] bg-white px-3 py-1 shadow-sm border border-[var(--d-border-subtle)]"
           >
             Show all {lines.length} lines
           </button>
@@ -154,7 +154,7 @@ function ArtifactPills({ artifacts }: { artifacts: StageDetail["artifacts"] }) {
       {artifacts.map((artifact) => (
         <div
           key={artifact.path}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--d-bg-page)] border border-[var(--d-border-subtle)]"
+          className="flex items-center gap-2 px-3 py-1.5 bg-[var(--d-bg-page)] border border-[var(--d-border-subtle)]"
         >
           <span className="text-[12px] font-semibold text-[var(--d-text-primary)]">
             {artifact.name}
@@ -200,7 +200,7 @@ function VisitTimeline({ visits, currentVisit, onSelectVisit }: {
             key={visitNum}
             onClick={() => onSelectVisit(visitNum)}
             className={cn(
-              "min-w-[32px] h-[28px] rounded-lg text-[12px] font-mono font-semibold transition-all",
+              "min-w-[32px] h-[28px] text-[12px] font-mono font-semibold transition-all",
               isSelected
                 ? "bg-[var(--d-text-primary)] text-white shadow-sm"
                 : visitStatus === "failure"
@@ -252,7 +252,7 @@ export function StageCard({ stage, id }: StageCardProps) {
     return (
       <div
         id={id}
-        className="bg-[var(--d-bg-subtle)] rounded-xl border border-[var(--d-border-subtle)] px-5 py-4 opacity-50"
+        className="bg-[var(--d-bg-subtle)] border border-[var(--d-border-subtle)] px-5 py-4 opacity-50"
       >
         <div className="flex items-center gap-3">
           <span className="text-[13px] font-semibold text-[var(--d-text-disabled)]">{stage.label}</span>
@@ -329,12 +329,12 @@ export function StageCard({ stage, id }: StageCardProps) {
 
 export function StageCardSkeleton() {
   return (
-    <div className="bg-white rounded-xl border border-[var(--d-border-subtle)] p-6">
+    <div className="bg-white border border-[var(--d-border-subtle)] p-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className="h-4 w-24 bg-[var(--d-bg-active)] rounded" />
-        <div className="h-3 w-16 bg-[var(--d-bg-active)] rounded" />
+        <div className="h-4 w-24 bg-[var(--d-bg-active)]" />
+        <div className="h-3 w-16 bg-[var(--d-bg-active)]" />
       </div>
-      <div className="h-32 bg-[var(--d-bg-page)] rounded-lg" />
+      <div className="h-32 bg-[var(--d-bg-page)]" />
     </div>
   );
 }

@@ -1,0 +1,141 @@
+---
+tracker:
+  kind: linear
+  endpoint: https://api.linear.app/graphql
+  api_key: $LINEAR_API_KEY
+  assignee_id: 38cbbbc9-437e-4bde-9916-f8b2ae8e3ce5
+  active_states:
+    - Todo
+    - In Progress
+    - In Development
+    - Ready for Development
+  terminal_states:
+    - Done
+    - Canceled
+    - Cancelled
+    - Duplicate
+    - Done on Prod
+polling:
+  interval_ms: 30000
+workspace:
+  root: /tmp/vajra-workspaces
+artifacts:
+  root: ~/vajra-artifacts/issues
+  workspace_dir: .vajra
+hooks:
+  after_create: |
+    git clone --depth 1 --branch ${VAJRA_BASE_BRANCH:-main} https://github.com/akshiitGpt/vajra.git .
+  before_run: |
+    git fetch origin ${VAJRA_BASE_BRANCH:-main}
+    git checkout ${VAJRA_BASE_BRANCH:-main}
+    git reset --hard origin/${VAJRA_BASE_BRANCH:-main}
+    git clean -fd -e .vajra
+  timeout_ms: 120000
+execution:
+  max_concurrent_agents: 5
+  max_retry_attempts: 3
+  max_retry_backoff_ms: 300000
+  max_concurrent_agents_by_state: {}
+  max_agent_invocations_per_run: 20
+escalation:
+  linear_state: Require Changes
+  comment: true
+  slack_notify: true
+workflows:
+  default:
+    dot_file: pipelines/default.dot
+    success_state: Code Review
+    inspect_pr: true
+workflow_routing:
+  default_workflow: default
+  by_label: {}
+backends:
+  claude:
+    command: claude --model {{ model }} -p {{ prompt | shellquote }}
+  codex:
+    command: codex exec --model {{ model }} {{ prompt | shellquote }}
+agents:
+  planner:
+    backend: claude
+    model: claude-opus-4-6
+    prompt: |-
+      Use the `vajra-plan` skill.
+
+      Issue: {{ issue.identifier }} — {{ issue.title }}
+      {{ issue.description }}
+
+      If `.vajra/run/plan.md` already exists, revise it instead of starting over.
+      If `.vajra/run/plan-review.md` exists, address that review directly.
+
+      Write: .vajra/run/plan.md
+    reasoning_effort: high
+  plan-reviewer:
+    backend: claude
+    model: claude-opus-4-6
+    prompt: |-
+      Use the `vajra-plan-review` skill.
+
+      Issue: {{ issue.identifier }} — {{ issue.title }}
+      {{ issue.description }}
+
+      Read: .vajra/run/plan.md
+      Write: .vajra/run/plan-review.md
+      Write structured review outcome: .vajra/run/stages/{{ stage.id }}/result.json
+      Allowed labels: lgtm, revise, escalate
+    reasoning_effort: high
+  coder:
+    backend: claude
+    model: claude-opus-4-6
+    prompt: |-
+      Use the `vajra-implement` skill.
+
+      Issue: {{ issue.identifier }} — {{ issue.title }}
+      {{ issue.description }}
+
+      Read: .vajra/run/plan.md
+      If `.vajra/run/code-review.md` exists, address that review while keeping the implementation scoped.
+      Write: .vajra/run/implementation-summary.md
+    reasoning_effort: high
+  code-reviewer:
+    backend: claude
+    model: claude-opus-4-6
+    prompt: |-
+      Use the `vajra-code-review` skill.
+
+      Issue: {{ issue.identifier }} — {{ issue.title }}
+      {{ issue.description }}
+
+      Read: .vajra/run/plan.md, .vajra/run/implementation-summary.md
+      Inspect: the actual code changes (git diff, changed files)
+      Write: .vajra/run/code-review.md
+      Write structured review outcome: .vajra/run/stages/{{ stage.id }}/result.json
+      Allowed labels: lgtm, revise, escalate
+    reasoning_effort: high
+  fixer:
+    backend: claude
+    model: claude-opus-4-6
+    prompt: |-
+      Use the `vajra-fix` skill.
+
+      Issue: {{ issue.identifier }} — {{ issue.title }}
+      {{ issue.description }}
+
+      Read: .vajra/run/code-review.md, .vajra/run/implementation-summary.md
+      Update: .vajra/run/implementation-summary.md
+    reasoning_effort: high
+  pr-preparer:
+    backend: claude
+    model: claude-sonnet-4-6
+    prompt: |-
+      Use the `vajra-prepare-pr` skill.
+
+      Issue: {{ issue.identifier }} — {{ issue.title }}
+      {{ issue.description }}
+
+      Read: .vajra/run/plan.md, .vajra/run/implementation-summary.md, .vajra/run/code-review.md
+      Write: .vajra/pr-title.txt, .vajra/run/pr-body.md
+      Branch: vajra/{{ issue.identifier | downcase }}
+      Target: origin/{{ target_branch }}
+      Do not create or update the PR directly. The workflow's publish_pr tool step owns GitHub mutation.
+    reasoning_effort: high
+---

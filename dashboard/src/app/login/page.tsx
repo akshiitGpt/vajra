@@ -49,7 +49,7 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--d-bg-page)] p-4">
       <div className="w-full max-w-sm">
         <div
-          className="bg-[var(--d-bg-surface)] rounded-xl shadow-[var(--d-shadow-modal)] overflow-hidden"
+          className="bg-[var(--d-bg-surface)] shadow-[var(--d-shadow-modal)] overflow-hidden"
         >
           {/* Header */}
           <div className="px-6 pt-8 pb-2 text-center">

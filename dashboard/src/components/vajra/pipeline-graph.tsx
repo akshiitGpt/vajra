@@ -159,7 +159,7 @@ function StageNodeComponent({ data }: NodeProps<GraphFlowNode>) {
 
       <div
         className={cn(
-          "w-[168px] min-h-[82px] rounded-xl border px-4 py-3 shadow-[var(--d-shadow-sm)] transition-all duration-300 ease-out",
+          "w-[168px] min-h-[82px] border px-4 py-3 shadow-[var(--d-shadow-sm)] transition-all duration-300 ease-out",
           isStructural
             ? "border-[var(--d-border)] border-dashed bg-[var(--d-bg-page)]"
             : cn(accent.border, accent.bg, accent.ring, data.status === "running" && "animate-pulse"),
@@ -192,7 +192,7 @@ function StageNodeComponent({ data }: NodeProps<GraphFlowNode>) {
               <span
                 key={badge}
                 className={cn(
-                  "inline-flex text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded",
+                  "inline-flex text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5",
                   BADGE_STYLES[badge].bg,
                   BADGE_STYLES[badge].text,
                 )}
@@ -218,7 +218,7 @@ function StageNodeComponent({ data }: NodeProps<GraphFlowNode>) {
             <span />
           )}
           {data.visitCount > 1 && (
-            <span className="text-[10px] font-mono text-[var(--d-text-tertiary)] bg-[var(--d-bg-page)] px-1.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-mono text-[var(--d-text-tertiary)] bg-[var(--d-bg-page)] px-1.5 py-0.5">
               ×{data.visitCount}
             </span>
           )}
@@ -257,7 +257,7 @@ function PipelineEdgeComponent(props: EdgeProps<GraphFlowEdge>) {
         <EdgeLabelRenderer>
           <div
             className={cn(
-              "absolute text-[10px] font-mono px-1.5 py-0.5 rounded border",
+              "absolute text-[10px] font-mono px-1.5 py-0.5 border",
               data.onLabel
                 ? "text-[var(--d-info-text)] bg-[var(--d-info-bg)] border-[var(--d-info-text)]/20"
                 : "text-[var(--d-text-tertiary)] bg-white/90 border-[var(--d-border-subtle)]",
@@ -315,7 +315,7 @@ function AnimatedPipelineEdgeComponent(props: EdgeProps<GraphFlowEdge>) {
         <EdgeLabelRenderer>
           <div
             className={cn(
-              "absolute text-[10px] font-mono px-1.5 py-0.5 rounded border",
+              "absolute text-[10px] font-mono px-1.5 py-0.5 border",
               data.onLabel
                 ? "text-[var(--d-info-text)] bg-[var(--d-info-bg)] border-[var(--d-info-text)]/20"
                 : "text-[var(--d-text-tertiary)] bg-white/90 border-[var(--d-border-subtle)]",
@@ -796,7 +796,7 @@ export function PipelineGraph({
 
   return (
     <div
-      className={cn("vajra-pipeline rounded-xl border border-[var(--d-border-subtle)] bg-white overflow-hidden", className)}
+      className={cn("vajra-pipeline border border-[var(--d-border-subtle)] bg-white overflow-hidden", className)}
       style={{ height }}
     >
       <ReactFlow

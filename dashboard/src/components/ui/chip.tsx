@@ -18,10 +18,10 @@ export function Chip({ label, icon, onClick, variant = "default" }: ChipProps) {
   return (
     <Component
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded-full bg-[#e5e5ea] ${
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-[#DDDDD9] ${
         isButton
-          ? "text-[#007aff] hover:bg-[#d1d1d6] transition-colors cursor-pointer"
-          : "text-[#8e8e93]"
+          ? "text-[#111111] hover:bg-[#C5C5C2] transition-colors cursor-pointer"
+          : "text-[#888888]"
       }`}
     >
       {icon}

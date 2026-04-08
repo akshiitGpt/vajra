@@ -76,15 +76,15 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-title"
-        className="relative w-full max-w-[420px] bg-[#f2f2f7] rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150 outline-none overflow-hidden"
+        className="relative w-full max-w-[420px] bg-[#F8F8F6] shadow-2xl animate-in fade-in zoom-in-95 duration-150 outline-none overflow-hidden"
       >
         <div className="flex items-center justify-between px-4 py-3">
-          <h2 id="settings-title" className="text-[17px] font-semibold text-[#1a1a1a]">
+          <h2 id="settings-title" className="text-[17px] font-semibold text-[#111111]">
             Settings
           </h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-[#e5e5ea] text-[#8e8e93] hover:text-[#1a1a1a] transition-colors"
+            className="w-8 h-8 flex items-center justify-center bg-[#DDDDD9] text-[#888888] hover:text-[#111111] transition-colors"
             aria-label="Close"
           >
             <CloseIcon className="w-4 h-4" />
@@ -95,7 +95,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             <button
               onClick={handleLogout}
               disabled={loggingOut}
-              className="w-full px-4 py-3 bg-white rounded-lg border border-[#e5e5e5] flex items-center justify-center gap-2 text-[14px] text-[#ff3b30] hover:bg-[#fff5f5] transition-colors disabled:opacity-50"
+              className="w-full px-4 py-3 bg-white border border-[#DDDDD9] flex items-center justify-center gap-2 text-[14px] text-[#D32F2F] hover:bg-[#fff5f5] transition-colors disabled:opacity-50"
             >
               <LogOutIcon className="w-4 h-4" />
               <span>{loggingOut ? "Signing out..." : "Sign out"}</span>

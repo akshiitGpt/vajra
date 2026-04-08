@@ -45,18 +45,18 @@ function PrLink({ url }: { url: string | null }) {
 
 function RunTableSkeleton() {
   return (
-    <div className="bg-white rounded-xl border border-[var(--d-border-subtle)]">
+    <div className="bg-white border border-[var(--d-border-subtle)]">
       <div className="px-5 py-3 border-b border-[var(--d-border-subtle)]">
-        <div className="h-3 w-16 bg-[var(--d-bg-active)] rounded" />
+        <div className="h-3 w-16 bg-[var(--d-bg-active)]" />
       </div>
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="px-5 py-4 border-b border-[var(--d-border-subtle)] last:border-0">
           <div className="flex items-center gap-6">
-            <div className="h-3 w-14 bg-[var(--d-bg-active)] rounded" />
-            <div className="h-3 w-40 bg-[var(--d-bg-active)] rounded" />
+            <div className="h-3 w-14 bg-[var(--d-bg-active)]" />
+            <div className="h-3 w-40 bg-[var(--d-bg-active)]" />
             <div className="flex-1" />
-            <div className="h-3 w-24 bg-[var(--d-bg-active)] rounded" />
-            <div className="h-3 w-12 bg-[var(--d-bg-active)] rounded" />
+            <div className="h-3 w-24 bg-[var(--d-bg-active)]" />
+            <div className="h-3 w-12 bg-[var(--d-bg-active)]" />
           </div>
         </div>
       ))}
@@ -66,8 +66,8 @@ function RunTableSkeleton() {
 
 function EmptyState() {
   return (
-    <div className="bg-white rounded-xl border border-[var(--d-border-subtle)] px-5 py-16 text-center">
-      <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[var(--d-bg-page)] flex items-center justify-center">
+    <div className="bg-white border border-[var(--d-border-subtle)] px-5 py-16 text-center">
+      <div className="w-12 h-12 mx-auto mb-4 bg-[var(--d-bg-page)] flex items-center justify-center">
         <svg viewBox="0 0 24 24" className="w-6 h-6 text-[var(--d-text-disabled)]" fill="none" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
         </svg>
@@ -85,7 +85,7 @@ export function RunTable({ runs, loading, onRunClick }: RunTableProps) {
   if (runs.length === 0) return <EmptyState />;
 
   return (
-    <div className="bg-white rounded-xl border border-[var(--d-border-subtle)] overflow-hidden">
+    <div className="bg-white border border-[var(--d-border-subtle)] overflow-hidden">
       {/* Header */}
       <div className="grid grid-cols-[100px_1fr_100px_200px_80px_80px_60px] gap-4 px-5 py-2.5 border-b border-[var(--d-border-subtle)] bg-[var(--d-bg-subtle)]">
         <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--d-text-tertiary)]">Issue</span>

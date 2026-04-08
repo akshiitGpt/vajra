@@ -73,7 +73,7 @@ export type TabsProps<T extends string = string> = {
 const containerStyles: Record<TabsVariant, string> = {
   segment: "inline-flex gap-1",
   underline: "inline-flex gap-0 border-b border-[var(--d-border-subtle)]",
-  contained: "inline-flex gap-0.5 p-0.5 bg-[var(--d-bg-hover)] rounded-lg",
+  contained: "inline-flex gap-0.5 p-0.5 bg-[var(--d-bg-hover)]",
 };
 
 const tabBaseStyles = [
@@ -102,11 +102,11 @@ const variantTabStyles: Record<TabsVariant, { active: string; inactive: string }
 const sizeStyles: Record<TabsSize, { container: string; tab: string }> = {
   sm: {
     container: "",
-    tab: "px-2.5 py-1 text-[12px] rounded-md",
+    tab: "px-2.5 py-1 text-[12px]",
   },
   md: {
     container: "",
-    tab: "px-3.5 py-1.5 text-[13px] rounded-lg",
+    tab: "px-3.5 py-1.5 text-[13px]",
   },
 };
 
@@ -122,7 +122,7 @@ const underlineSizeStyles: Record<TabsSize, string> = {
 
 function TabBadge({ content }: { content: string | number }) {
   return (
-    <span className="ml-1 px-1.5 py-0.5 text-[10px] font-medium bg-[var(--d-bg-active)] text-[var(--d-text-secondary)] rounded-full">
+    <span className="ml-1 px-1.5 py-0.5 text-[10px] font-medium bg-[var(--d-bg-active)] text-[var(--d-text-secondary)]">
       {content}
     </span>
   );

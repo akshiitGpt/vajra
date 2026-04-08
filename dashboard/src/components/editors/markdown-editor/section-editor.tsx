@@ -96,13 +96,13 @@ export function SectionEditor({
   };
 
   return (
-    <div className="border border-[var(--d-border)] rounded-lg overflow-hidden bg-[var(--d-bg-surface)]">
+    <div className="border border-[var(--d-border)] overflow-hidden bg-[var(--d-bg-surface)]">
       {/* Section header */}
       <div className="flex items-center gap-2 px-3 py-2.5 bg-[var(--d-bg-subtle)] group">
         {/* Collapse toggle */}
         <button
           onClick={onToggle}
-          className="flex items-center gap-2 flex-1 text-left -ml-1 pl-1 py-0.5 rounded transition-colors"
+          className="flex items-center gap-2 flex-1 text-left -ml-1 pl-1 py-0.5 transition-colors"
         >
           <span className="w-4 h-4 flex-shrink-0 text-[var(--d-text-tertiary)]">
             {isExpanded ? (
@@ -120,7 +120,7 @@ export function SectionEditor({
               onBlur={onHeadingBlur}
               onClick={(e) => e.stopPropagation()}
               autoFocus
-              className="flex-1 text-[14px] font-medium text-[var(--d-text-primary)] bg-[var(--d-bg-surface)] border border-[var(--d-primary)] rounded px-2 py-0.5 focus:outline-none"
+              className="flex-1 text-[14px] font-medium text-[var(--d-text-primary)] bg-[var(--d-bg-surface)] border border-[var(--d-primary)] px-2 py-0.5 focus:outline-none"
             />
           ) : (
             <span className="text-[14px] font-medium text-[var(--d-text-primary)] flex-1">
@@ -210,13 +210,13 @@ export function SectionEditor({
                 autoFocus={addingContentToSection === section.id}
                 rows={Math.max(3, section.content.split("\n").length + 1)}
                 placeholder="Enter section content..."
-                className="w-full p-3 text-[13px] font-mono bg-[var(--d-bg-subtle)] border border-[var(--d-border)] rounded resize-none focus:outline-none focus:border-[var(--d-primary)] disabled:opacity-50"
+                className="w-full p-3 text-[13px] font-mono bg-[var(--d-bg-subtle)] border border-[var(--d-border)] resize-none focus:outline-none focus:border-[var(--d-primary)] disabled:opacity-50"
               />
             ) : hasSubsections ? (
               <button
                 onClick={() => onSetAddingContent(section.id)}
                 disabled={disabled}
-                className="w-full p-3 text-[13px] text-[var(--d-text-tertiary)] bg-[var(--d-bg-subtle)] border border-dashed border-[var(--d-border)] rounded hover:border-[var(--d-primary)] hover:text-[var(--d-primary)] transition-colors text-left"
+                className="w-full p-3 text-[13px] text-[var(--d-text-tertiary)] bg-[var(--d-bg-subtle)] border border-dashed border-[var(--d-border)] hover:border-[var(--d-primary)] hover:text-[var(--d-primary)] transition-colors text-left"
               >
                 + Add content before subsections...
               </button>
@@ -227,7 +227,7 @@ export function SectionEditor({
                 disabled={disabled}
                 rows={3}
                 placeholder="Enter section content..."
-                className="w-full p-3 text-[13px] font-mono bg-[var(--d-bg-subtle)] border border-[var(--d-border)] rounded resize-none focus:outline-none focus:border-[var(--d-primary)] disabled:opacity-50"
+                className="w-full p-3 text-[13px] font-mono bg-[var(--d-bg-subtle)] border border-[var(--d-border)] resize-none focus:outline-none focus:border-[var(--d-primary)] disabled:opacity-50"
               />
             )}
           </div>
@@ -275,7 +275,7 @@ export function SectionEditor({
             <div className="px-3 pb-3 flex items-center justify-between">
               <button
                 onClick={onAddSubsection}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] text-[var(--d-text-tertiary)] hover:text-[var(--d-text-secondary)] rounded transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] text-[var(--d-text-tertiary)] hover:text-[var(--d-text-secondary)] transition-colors"
               >
                 <PlusCircleIcon className="w-3.5 h-3.5" />
                 Add Subsection
@@ -284,14 +284,14 @@ export function SectionEditor({
                 (isReorderingSubsections ? (
                   <button
                     onClick={() => onSetReorderSubsectionMode(null)}
-                    className="px-2.5 py-1.5 text-[12px] text-white bg-[var(--d-primary)] rounded hover:opacity-90 transition-colors"
+                    className="px-2.5 py-1.5 text-[12px] text-white bg-[var(--d-primary)] hover:opacity-90 transition-colors"
                   >
                     Done
                   </button>
                 ) : (
                   <button
                     onClick={() => onSetReorderSubsectionMode(section.id)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] text-[var(--d-text-tertiary)] hover:text-[var(--d-text-secondary)] rounded transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] text-[var(--d-text-tertiary)] hover:text-[var(--d-text-secondary)] transition-colors"
                   >
                     <ReorderIcon className="w-3.5 h-3.5" />
                     Reorder

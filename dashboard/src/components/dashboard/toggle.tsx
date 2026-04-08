@@ -20,7 +20,7 @@ export function Toggle({ enabled, onChange, disabled }: ToggleProps) {
       onClick={() => onChange(!enabled)}
       disabled={disabled}
       className={cn(
-        "relative w-11 h-6 rounded-full transition-colors",
+        "relative w-11 h-6 transition-colors",
         enabled
           ? "bg-[var(--d-primary)]"
           : "bg-[var(--d-bg-subtle)] border border-[var(--d-border)]",
@@ -29,7 +29,7 @@ export function Toggle({ enabled, onChange, disabled }: ToggleProps) {
     >
       <span
         className={cn(
-          "absolute top-1 w-4 h-4 rounded-full transition-all",
+          "absolute top-1 w-4 h-4 transition-all",
           enabled
             ? "left-6 bg-white"
             : "left-1 bg-[var(--d-text-tertiary)]"

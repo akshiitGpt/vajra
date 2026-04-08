@@ -235,7 +235,7 @@ export function Sidebar<T extends string = string>({
             <button
               onClick={handleClose}
               className={cn(
-                "p-1.5 rounded-lg",
+                "p-1.5",
                 "text-[var(--d-text-tertiary)]",
                 "hover:bg-[var(--d-bg-hover)] hover:text-[var(--d-text-primary)]",
                 "transition-colors duration-150"
@@ -357,7 +357,7 @@ export function SidebarCard({ children, className }: SidebarCardProps) {
   return (
     <div
       className={cn(
-        "p-3 rounded-lg",
+        "p-3",
         "bg-[var(--d-bg-surface)]",
         "border border-[var(--d-border-subtle)]",
         className

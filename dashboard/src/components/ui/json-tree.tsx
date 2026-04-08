@@ -82,7 +82,7 @@ function StringValue({ value }: { value: string }) {
         href={value}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[#007aff] hover:underline break-all"
+        className="text-[#111111] hover:underline break-all"
       >
         "{value}"
       </a>
@@ -99,7 +99,7 @@ function StringValue({ value }: { value: string }) {
         {isLong && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="ml-1 text-[10px] text-[#007aff] hover:underline"
+            className="ml-1 text-[10px] text-[#111111] hover:underline"
           >
             {expanded ? "less" : `+${(value.length - STRING_TRUNCATE).toLocaleString()}`}
           </button>
@@ -114,7 +114,7 @@ function StringValue({ value }: { value: string }) {
       {isLong && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="ml-1 text-[10px] text-[#007aff] hover:underline"
+          className="ml-1 text-[10px] text-[#111111] hover:underline"
         >
           {expanded ? "less" : `+${(value.length - STRING_TRUNCATE).toLocaleString()}`}
         </button>
@@ -171,7 +171,7 @@ function TreeNode({ label, value, depth }: {
     <div style={{ paddingLeft: depth > 0 ? 16 : 0 }}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-baseline gap-0 leading-[1.6] hover:bg-white/5 -ml-1 pl-1 rounded"
+        className="flex items-baseline gap-0 leading-[1.6] hover:bg-white/5 -ml-1 pl-1"
       >
         <span className="select-none text-[10px] text-[#6c7086] w-3 shrink-0 inline-block text-center">
           {open ? "▾" : "▸"}

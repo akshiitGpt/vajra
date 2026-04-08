@@ -1,7 +1,7 @@
 "use client";
 
 const CHART_COLORS = {
-  primary: "#0071e3",
+  primary: "#111111",
 } as const;
 
 interface SparklinePoint {
@@ -70,7 +70,7 @@ export function KpiCard({
   const arrow = !hasChange || change === 0 ? "" : change > 0 ? "↑" : "↓";
 
   return (
-    <div className="bg-white rounded-xl border border-[var(--d-border-subtle)] px-5 pt-4 pb-3">
+    <div className="bg-white border border-[var(--d-border-subtle)] px-5 pt-4 pb-3">
       <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--d-text-tertiary)]">
         {label}
       </p>
@@ -89,11 +89,11 @@ export function KpiCard({
 
 export function KpiCardSkeleton() {
   return (
-    <div className="bg-white rounded-xl border border-[var(--d-border-subtle)] px-5 pt-4 pb-3">
-      <div className="h-3 w-16 bg-[var(--d-bg-active)] rounded" />
-      <div className="h-8 w-20 bg-[var(--d-bg-active)] rounded mt-2" />
-      <div className="h-3 w-12 bg-[var(--d-bg-active)] rounded mt-1.5" />
-      <div className="h-8 w-full bg-[var(--d-bg-page)] rounded mt-3" />
+    <div className="bg-white border border-[var(--d-border-subtle)] px-5 pt-4 pb-3">
+      <div className="h-3 w-16 bg-[var(--d-bg-active)]" />
+      <div className="h-8 w-20 bg-[var(--d-bg-active)] mt-2" />
+      <div className="h-3 w-12 bg-[var(--d-bg-active)] mt-1.5" />
+      <div className="h-8 w-full bg-[var(--d-bg-page)] mt-3" />
     </div>
   );
 }

@@ -9,68 +9,68 @@
      DASHBOARD DESIGN TOKENS
      ========================================================================= */
 
-  /* Dashboard Backgrounds */
-  --d-bg-page: #f5f5f7;
-  --d-bg-surface: #ffffff;
-  --d-bg-elevated: #ffffff;
-  --d-bg-subtle: #fbfbfd;
-  --d-bg-hover: #efefef;
-  --d-bg-active: #e8e8ed;
-  --d-bg-selected: rgba(0, 113, 227, 0.04);
-  --d-bg-selected-strong: rgba(0, 113, 227, 0.08);
+  /* Backgrounds — warm whites */
+  --d-bg-page: #F8F8F6;
+  --d-bg-surface: #FFFFFF;
+  --d-bg-elevated: #FFFFFF;
+  --d-bg-subtle: #FAFAF8;
+  --d-bg-hover: #F2F2F0;
+  --d-bg-active: #EAEAE8;
+  --d-bg-selected: rgba(0, 0, 0, 0.03);
+  --d-bg-selected-strong: rgba(0, 0, 0, 0.06);
 
-  /* Dashboard Text */
-  --d-text-primary: #1d1d1f;
-  --d-text-secondary: #636366;
-  --d-text-tertiary: #8e8e93;
-  --d-text-disabled: #aeaeb2;
-  --d-text-inverted: #ffffff;
-  --d-text-link: #0071e3;
-  --d-text-link-hover: #0066cc;
+  /* Text — pure blacks and warm grays */
+  --d-text-primary: #111111;
+  --d-text-secondary: #555555;
+  --d-text-tertiary: #888888;
+  --d-text-disabled: #BBBBBB;
+  --d-text-inverted: #FFFFFF;
+  --d-text-link: #111111;
+  --d-text-link-hover: #333333;
 
-  /* Dashboard Borders */
-  --d-border: #d2d2d7;
-  --d-border-subtle: #e8e8ed;
-  --d-border-strong: #aeaeb2;
-  --d-border-focus: #0071e3;
-  --d-border-selected: #0071e3;
+  /* Borders — warm neutral */
+  --d-border: #DDDDD9;
+  --d-border-subtle: #EBEBEA;
+  --d-border-strong: #C5C5C2;
+  --d-border-focus: #111111;
+  --d-border-selected: #111111;
 
-  /* Dashboard Interactive */
-  --d-primary: #0071e3;
-  --d-primary-hover: #0066cc;
-  --d-primary-active: #0055b3;
-  --d-secondary: #0071e3;
-  --d-secondary-hover: #f0f5ff;
-  --d-ghost-hover: #efefef;
-  --d-ghost-active: #e8e8ed;
-  --d-destructive: #ff453a;
-  --d-destructive-hover: #dc2626;
-  --d-destructive-bg: #fef2f2;
+  /* Interactive — black primary */
+  --d-primary: #111111;
+  --d-primary-hover: #222222;
+  --d-primary-active: #333333;
+  --d-secondary: #111111;
+  --d-secondary-hover: #F5F5F3;
+  --d-ghost-hover: #F2F2F0;
+  --d-ghost-active: #EAEAE8;
+  --d-destructive: #D32F2F;
+  --d-destructive-hover: #B71C1C;
+  --d-destructive-bg: #FFF5F5;
 
-  /* Dashboard Status */
-  --d-success: #30d158;
-  --d-success-bg: #f0fdf4;
-  --d-success-text: #1e7e34;
-  --d-error: #ff453a;
-  --d-error-bg: #fef2f2;
-  --d-error-text: #b91c1c;
-  --d-diff-added-word: #d1fae5;
-  --d-diff-removed-word: #fee2e2;
-  --d-warning: #ff9f0a;
-  --d-warning-bg: #fffbeb;
-  --d-warning-text: #b45309;
-  --d-info: #0071e3;
-  --d-info-bg: #f0f5ff;
-  --d-info-text: #0055b3;
+  /* Status — kept functional but desaturated */
+  --d-success: #2E7D32;
+  --d-success-bg: #F1F8F2;
+  --d-success-text: #1B5E20;
+  --d-error: #D32F2F;
+  --d-error-bg: #FFF5F5;
+  --d-error-text: #B71C1C;
+  --d-diff-added-word: #D4EDDA;
+  --d-diff-removed-word: #F8D7DA;
+  --d-warning: #E65100;
+  --d-warning-bg: #FFF8F0;
+  --d-warning-text: #BF360C;
+  --d-info: #111111;
+  --d-info-bg: #F5F5F3;
+  --d-info-text: #333333;
 
-  /* Dashboard Component-Specific */
-  --d-sidebar-bg: #fbfbfd;
-  --d-sidebar-border: #d2d2d7;
-  --d-toolbar-bg: #fbfbfd;
-  --d-toolbar-border: #e8e8ed;
-  --d-tabs-inactive: #8e8e93;
-  --d-tabs-active: #0071e3;
-  --d-tabs-active-bg: rgba(0, 113, 227, 0.08);
+  /* Component-Specific — warm */
+  --d-sidebar-bg: #FAFAF8;
+  --d-sidebar-border: #DDDDD9;
+  --d-toolbar-bg: #FAFAF8;
+  --d-toolbar-border: #EBEBEA;
+  --d-tabs-inactive: #888888;
+  --d-tabs-active: #111111;
+  --d-tabs-active-bg: rgba(0, 0, 0, 0.05);
 
   /* Dashboard Shadows */
   --d-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
@@ -113,13 +113,13 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --font-mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, monospace;
 
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
-  --radius-3xl: 20px;
+  /* Border Radius — sharp corners */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
 }
 
 /* =============================================================================

@@ -74,7 +74,7 @@ function TextInput({
       placeholder={placeholder}
       disabled={disabled}
       className={cn(
-        "w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+        "w-full border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
         "text-[13px] text-[var(--d-text-primary)]",
         "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
         "disabled:opacity-50 disabled:bg-[var(--d-bg-subtle)]",
@@ -109,11 +109,11 @@ function TagInput({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 p-2 min-h-[40px] rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] focus-within:ring-2 focus-within:ring-[var(--d-border-focus)]">
+    <div className="flex flex-wrap items-center gap-1.5 p-2 min-h-[40px] border border-[var(--d-border)] bg-[var(--d-bg-surface)] focus-within:ring-2 focus-within:ring-[var(--d-border-focus)]">
       {tags.map((tag) => (
         <span
           key={tag}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12px] font-medium bg-[var(--d-bg-page)] text-[var(--d-text-primary)] border border-[var(--d-border-subtle)]"
+          className="inline-flex items-center gap-1 px-2 py-0.5 text-[12px] font-medium bg-[var(--d-bg-page)] text-[var(--d-text-primary)] border border-[var(--d-border-subtle)]"
         >
           {tag}
           <button
@@ -259,7 +259,7 @@ function WorkflowsSection({
   return (
     <ChartCard title="Workflows" subtitle="Route issues to workflow graphs by label">
       {/* Workflow entries table */}
-      <div className="bg-[var(--d-bg-page)] rounded-lg overflow-hidden border border-[var(--d-border-subtle)]">
+      <div className="bg-[var(--d-bg-page)] overflow-hidden border border-[var(--d-border-subtle)]">
         <div className="grid grid-cols-[1fr_1fr_110px_80px] gap-4 px-4 py-2 border-b border-[var(--d-border-subtle)] bg-[var(--d-bg-subtle)]">
           <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--d-text-tertiary)]">Name</span>
           <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--d-text-tertiary)]">DOT File</span>
@@ -271,7 +271,7 @@ function WorkflowsSection({
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-semibold text-[var(--d-text-primary)]">{entry.name}</span>
               {(entry.isDefault || entry.name === defaultWorkflow) && (
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--d-info-bg)] text-[var(--d-info-text)]">
+                <span className="text-[10px] font-medium px-1.5 py-0.5 bg-[var(--d-info-bg)] text-[var(--d-info-text)]">
                   default
                 </span>
               )}
@@ -292,7 +292,7 @@ function WorkflowsSection({
             {entries.flatMap((entry) => entry.labels.map((label) => (
               <span
                 key={`${label}:${entry.name}`}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] bg-[var(--d-bg-surface)] border border-[var(--d-border-subtle)]"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[12px] bg-[var(--d-bg-surface)] border border-[var(--d-border-subtle)]"
               >
                 <span className="font-medium text-[var(--d-text-primary)]">{label}</span>
                 <span className="text-[var(--d-text-tertiary)]">→</span>
@@ -364,7 +364,7 @@ function TriageSection({ config }: { config: VajraTriageConfig }) {
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <span className={cn(
-            "text-[11px] font-semibold px-2 py-0.5 rounded-full",
+            "text-[11px] font-semibold px-2 py-0.5",
             config.enabled
               ? "bg-[var(--d-success-bg)] text-[var(--d-success-text)]"
               : "bg-[var(--d-bg-page)] text-[var(--d-text-disabled)]",
@@ -471,7 +471,7 @@ function FanOutSection({ fanOut }: { fanOut: Record<string, VajraFanOutDefinitio
               {def.variants.map((variant) => (
                 <div
                   key={variant.id}
-                  className="flex items-center gap-3 text-[12px] font-mono bg-[var(--d-bg-surface)] px-3 py-1.5 rounded border border-[var(--d-border-subtle)]"
+                  className="flex items-center gap-3 text-[12px] font-mono bg-[var(--d-bg-surface)] px-3 py-1.5 border border-[var(--d-border-subtle)]"
                 >
                   <span className="font-semibold text-[var(--d-text-primary)]">{variant.id}</span>
                   {variant.agent && <span className="text-[var(--d-text-tertiary)]">agent: {variant.agent}</span>}
@@ -588,9 +588,9 @@ export default function VajraConfigPage() {
           </h1>
           <div className="mt-8 space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl border border-[var(--d-border-subtle)] p-6">
-                <div className="h-4 w-32 bg-[var(--d-bg-active)] rounded mb-4" />
-                <div className="h-24 bg-[var(--d-bg-page)] rounded-lg" />
+              <div key={i} className="bg-white border border-[var(--d-border-subtle)] p-6">
+                <div className="h-4 w-32 bg-[var(--d-bg-active)] mb-4" />
+                <div className="h-24 bg-[var(--d-bg-page)]" />
               </div>
             ))}
           </div>
@@ -605,7 +605,7 @@ export default function VajraConfigPage() {
         <div className="px-8 pt-7">
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--d-text-tertiary)]">Vajra</p>
           <h1 className="text-[20px] font-semibold text-[var(--d-text-primary)] tracking-tight mt-0.5">Config</h1>
-          <div className="mt-8 px-4 py-6 rounded-lg bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
+          <div className="mt-8 px-4 py-6 bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
             <p className="text-[13px] text-[var(--d-error-text)]">{error ?? "Failed to load config"}</p>
           </div>
         </div>

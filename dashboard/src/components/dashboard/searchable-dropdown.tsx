@@ -231,7 +231,7 @@ export function SearchableDropdown<T = string>({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-full px-3 py-2 text-[13px] border rounded-lg transition-colors",
+          "w-full px-3 py-2 text-[13px] border transition-colors",
           "flex items-center gap-2 text-left",
           "focus:outline-none focus:border-[var(--d-border-strong)]",
           isOpen
@@ -253,7 +253,7 @@ export function SearchableDropdown<T = string>({
       {/* Dropdown */}
       {isOpen && (
         <div
-          className="absolute z-50 mt-1 bg-[var(--d-bg-surface)] border border-[var(--d-border)] rounded-lg shadow-[var(--d-shadow-dropdown)] overflow-hidden"
+          className="absolute z-50 mt-1 bg-[var(--d-bg-surface)] border border-[var(--d-border)] shadow-[var(--d-shadow-dropdown)] overflow-hidden"
           style={{ width: dropdownWidth ?? "100%", minWidth: "200px" }}
         >
           {/* Search input */}
@@ -267,7 +267,7 @@ export function SearchableDropdown<T = string>({
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={searchPlaceholder}
-                className="w-full pl-8 pr-3 py-1.5 text-[13px] border border-[var(--d-border)] rounded bg-[var(--d-bg-surface)] text-[var(--d-text-primary)] placeholder:text-[var(--d-text-tertiary)] focus:outline-none focus:border-[var(--d-border-strong)]"
+                className="w-full pl-8 pr-3 py-1.5 text-[13px] border border-[var(--d-border)] bg-[var(--d-bg-surface)] text-[var(--d-text-primary)] placeholder:text-[var(--d-text-tertiary)] focus:outline-none focus:border-[var(--d-border-strong)]"
               />
             </div>
           </div>

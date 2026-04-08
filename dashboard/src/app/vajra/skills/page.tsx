@@ -196,7 +196,7 @@ function SkillEditor({
         </div>
 
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
+          <div className="mb-4 px-4 py-3 bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
             <p className="text-[13px] text-[var(--d-error-text)]">{error}</p>
           </div>
         )}
@@ -213,7 +213,7 @@ function SkillEditor({
               disabled={!isNew}
               placeholder="vajra-plan-review"
               className={cn(
-                "w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
+                "w-full border border-[var(--d-border)] bg-[var(--d-bg-surface)] px-3 py-2",
                 "text-[13px] font-mono text-[var(--d-text-primary)]",
                 "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
                 "disabled:opacity-60 disabled:bg-[var(--d-bg-subtle)]",
@@ -225,7 +225,7 @@ function SkillEditor({
             label="Content"
             hint="Skill markdown consumed by Codex/Claude inside the workspace."
           >
-            <div className="border border-[var(--d-border)] rounded-lg overflow-hidden bg-[var(--d-bg-surface)]">
+            <div className="border border-[var(--d-border)] overflow-hidden bg-[var(--d-bg-surface)]">
               <MarkdownEditor
                 value={draft.content}
                 onChange={(value) => onChange({ content: value })}
@@ -412,9 +412,9 @@ export default function VajraSkillsPage() {
               <div className="px-4 py-6">
                 {Array.from({ length: 4 }).map((_, index) => (
                   <div key={index} className="py-3 border-b border-[var(--d-border-subtle)]">
-                    <div className="h-3.5 w-24 bg-[var(--d-bg-active)] rounded mb-2" />
-                    <div className="h-3 w-36 bg-[var(--d-bg-active)] rounded mb-1.5" />
-                    <div className="h-3 w-28 bg-[var(--d-bg-active)] rounded" />
+                    <div className="h-3.5 w-24 bg-[var(--d-bg-active)] mb-2" />
+                    <div className="h-3 w-36 bg-[var(--d-bg-active)] mb-1.5" />
+                    <div className="h-3 w-28 bg-[var(--d-bg-active)]" />
                   </div>
                 ))}
               </div>

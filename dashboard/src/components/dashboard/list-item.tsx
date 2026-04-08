@@ -17,7 +17,7 @@
  *
  * // With avatar
  * <ListItem
- *   avatar={{ initials: "JD", color: "#007aff" }}
+ *   avatar={{ initials: "JD", color: "#111111" }}
  *   title="John Doe"
  *   onClick={...}
  * />
@@ -158,7 +158,7 @@ function ActionButton({ action }: { action: ActionConfig }) {
         action.onClick(e);
       }}
       className={cn(
-        "p-1.5 rounded-md transition-all duration-150",
+        "p-1.5 transition-all duration-150",
         "opacity-0 group-hover:opacity-100",
         action.destructive
           ? "text-[var(--d-destructive)] hover:bg-[var(--d-destructive-bg)]"

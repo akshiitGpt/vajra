@@ -27,10 +27,10 @@ function ToolbarItem({ href, icon, label, matchPrefix }: ToolbarItemProps) {
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-200 ${
+      className={`flex items-center gap-2.5 px-3 py-2 transition-all duration-200 ${
         isActive
-          ? "text-[#1a1a1a] bg-[#e8e8e8]"
-          : "text-[#8e8e93] hover:text-[#6e6e73] hover:bg-[#efefef]"
+          ? "text-[#111111] bg-[#EAEAE8]"
+          : "text-[#888888] hover:text-[#555555] hover:bg-[#F2F2F0]"
       }`}
     >
       <span className="w-[18px] h-[18px] flex-shrink-0">{icon}</span>
@@ -46,7 +46,7 @@ function SettingsButton() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-all duration-200 text-[#8e8e93] hover:text-[#6e6e73] hover:bg-[#efefef]"
+        className="flex items-center gap-2.5 w-full px-3 py-2 transition-all duration-200 text-[#888888] hover:text-[#555555] hover:bg-[#F2F2F0]"
         aria-label="Settings"
       >
         <GearIcon className="w-[18px] h-[18px]" />
@@ -60,10 +60,10 @@ function SettingsButton() {
 
 export function Toolbar() {
   return (
-    <nav className="fixed left-0 top-0 bottom-0 w-40 bg-[#fafafa] border-r border-[#e5e5e5] flex flex-col px-3 pt-5 z-50">
+    <nav className="fixed left-0 top-0 bottom-0 w-40 bg-[#FAFAF8] border-r border-[#DDDDD9] flex flex-col px-3 pt-5 z-50">
       {/* Logo */}
       <div className="px-3 mb-6">
-        <span className="text-[15px] font-semibold text-[#b0b0b0] tracking-tight">vajra</span>
+        <span className="text-[15px] font-semibold text-[#999999] tracking-tight">vajra</span>
       </div>
 
       {/* Navigation */}

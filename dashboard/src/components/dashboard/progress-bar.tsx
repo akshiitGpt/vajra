@@ -64,7 +64,7 @@ export function ProgressBar({
   return (
     <div
       className={cn(
-        "w-full rounded-full overflow-hidden",
+        "w-full overflow-hidden",
         SIZE_CLASSES[size],
         className
       )}
@@ -72,7 +72,7 @@ export function ProgressBar({
     >
       <div
         className={cn(
-          "h-full rounded-full transition-all duration-300 ease-out",
+          "h-full transition-all duration-300 ease-out",
           isActive && "animate-pulse"
         )}
         style={{

@@ -229,7 +229,7 @@ export function SimpleMarkdown({ content }: { content: string }) {
           return (
             <pre
               key={`code-${index}`}
-              className="overflow-x-auto rounded-lg bg-[var(--d-bg-hover)] px-4 py-3 text-[12px] leading-6 text-[var(--d-text-primary)]"
+              className="overflow-x-auto bg-[var(--d-bg-hover)] px-4 py-3 text-[12px] leading-6 text-[var(--d-text-primary)]"
             >
               <code className="whitespace-pre font-mono">{block.content}</code>
             </pre>
@@ -239,7 +239,7 @@ export function SimpleMarkdown({ content }: { content: string }) {
         return (
           <div
             key={`table-${index}`}
-            className="overflow-x-auto rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-surface)]"
+            className="overflow-x-auto border border-[var(--d-border)] bg-[var(--d-bg-surface)]"
           >
             <table className="min-w-full border-collapse text-left text-[12px]">
               <tbody>

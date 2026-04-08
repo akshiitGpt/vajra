@@ -32,7 +32,7 @@ function CollectionCard({ collection }: { collection: VajraCollectionSummary }) 
           <span className="text-[11px] font-mono text-[var(--d-text-tertiary)]">stage: {collection.stageId}</span>
         </div>
         {collection.selectedCandidateId && (
-          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[var(--d-success-bg)] text-[var(--d-success-text)]">
+          <span className="text-[11px] font-medium px-2 py-0.5 bg-[var(--d-success-bg)] text-[var(--d-success-text)]">
             selected: {collection.selectedCandidateId}
           </span>
         )}
@@ -61,7 +61,7 @@ function CollectionCard({ collection }: { collection: VajraCollectionSummary }) 
                 <span className="text-[12px] font-semibold text-[var(--d-text-primary)]">{candidate.id}</span>
                 <span
                   className={cn(
-                    "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+                    "text-[10px] font-semibold px-1.5 py-0.5",
                     candidate.status === "success"
                       ? "bg-[var(--d-success-bg)] text-[var(--d-success-text)]"
                       : "bg-[var(--d-error-bg)] text-[var(--d-error-text)]",
@@ -91,7 +91,7 @@ function CollectionCard({ collection }: { collection: VajraCollectionSummary }) 
                     )}
                   </div>
                   {candidate.variantConfig.instructions && (
-                    <p className="text-[11px] text-[var(--d-text-secondary)] bg-[var(--d-bg-subtle)] px-2 py-1 rounded font-mono whitespace-pre-wrap">
+                    <p className="text-[11px] text-[var(--d-text-secondary)] bg-[var(--d-bg-subtle)] px-2 py-1 font-mono whitespace-pre-wrap">
                       {candidate.variantConfig.instructions}
                     </p>
                   )}
@@ -114,7 +114,7 @@ function CollectionCard({ collection }: { collection: VajraCollectionSummary }) 
                   {Object.entries(candidate.artifacts).map(([name, path]) => (
                     <span
                       key={name}
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono bg-[var(--d-bg-page)] text-[var(--d-text-secondary)] border border-[var(--d-border-subtle)]"
+                      className="inline-flex items-center px-2 py-0.5 text-[10px] font-mono bg-[var(--d-bg-page)] text-[var(--d-text-secondary)] border border-[var(--d-border-subtle)]"
                       title={path}
                     >
                       {name}
@@ -213,7 +213,7 @@ export default function RunDetailPage({ params }: PageProps) {
               )}
               <RunStatusBadge status={data.status} />
               {data.attempt > 0 && (
-                <span className="text-[12px] font-mono text-[var(--d-text-tertiary)] bg-[var(--d-bg-page)] px-2 py-0.5 rounded-full border border-[var(--d-border-subtle)]">
+                <span className="text-[12px] font-mono text-[var(--d-text-tertiary)] bg-[var(--d-bg-page)] px-2 py-0.5 border border-[var(--d-border-subtle)]">
                   attempt {data.attempt}
                 </span>
               )}
@@ -243,7 +243,7 @@ export default function RunDetailPage({ params }: PageProps) {
                 href={data.prUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--d-bg-surface)] border border-[var(--d-border-subtle)] text-[13px] font-medium text-[var(--d-text-link)] hover:bg-[var(--d-bg-hover)] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--d-bg-surface)] border border-[var(--d-border-subtle)] text-[13px] font-medium text-[var(--d-text-link)] hover:bg-[var(--d-bg-hover)] transition-colors"
               >
                 Pull Request
                 <ExternalLinkIcon className="w-3.5 h-3.5" />
@@ -254,7 +254,7 @@ export default function RunDetailPage({ params }: PageProps) {
 
         {/* Run summary panel */}
         {(data.dispatchPlan || data.checkpointStatus || data.nextNodeId) && (
-          <div className="mb-6 rounded-xl border border-[var(--d-border-subtle)] bg-[var(--d-bg-surface)] px-5 py-4">
+          <div className="mb-6 border border-[var(--d-border-subtle)] bg-[var(--d-bg-surface)] px-5 py-4">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--d-text-tertiary)] mb-3">
               Run Info
             </h3>
@@ -364,14 +364,14 @@ function RunDetailSkeleton({ issue, attempt }: { issue: string; attempt: string 
         {/* Header skeleton */}
         <div className="mt-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-6 w-20 bg-[var(--d-bg-active)] rounded" />
-            <div className="h-5 w-16 bg-[var(--d-bg-active)] rounded-full" />
+            <div className="h-6 w-20 bg-[var(--d-bg-active)]" />
+            <div className="h-5 w-16 bg-[var(--d-bg-active)]" />
           </div>
-          <div className="h-4 w-64 bg-[var(--d-bg-active)] rounded mt-2" />
+          <div className="h-4 w-64 bg-[var(--d-bg-active)] mt-2" />
         </div>
 
         {/* Graph skeleton */}
-        <div className="h-[220px] bg-white rounded-xl border border-[var(--d-border-subtle)] mb-8" />
+        <div className="h-[220px] bg-white border border-[var(--d-border-subtle)] mb-8" />
 
         {/* Stage card skeletons */}
         <div className="space-y-4">

@@ -13,9 +13,9 @@ interface SectionCardProps {
 
 export function SectionCard({ children, header }: SectionCardProps) {
   return (
-    <div className="bg-white rounded-xl overflow-hidden">
+    <div className="bg-white overflow-hidden">
       {header && (
-        <div className="px-3 py-2.5 border-b border-[#c6c6c8]/50">
+        <div className="px-3 py-2.5 border-b border-[#C5C5C2]/50">
           {header}
         </div>
       )}

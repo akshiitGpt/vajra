@@ -115,7 +115,7 @@ export default function VajraMonitorPage() {
             <button
               onClick={handleRefresh}
               disabled={loading}
-              className="p-2 rounded-lg text-[var(--d-text-tertiary)] hover:text-[var(--d-text-primary)] hover:bg-[var(--d-bg-hover)] transition-colors disabled:opacity-50"
+              className="p-2 text-[var(--d-text-tertiary)] hover:text-[var(--d-text-primary)] hover:bg-[var(--d-bg-hover)] transition-colors disabled:opacity-50"
               aria-label="Refresh"
             >
               <RefreshIcon className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -125,7 +125,7 @@ export default function VajraMonitorPage() {
 
         {/* Workflow reload error banner */}
         {state.data?.workflowReloadError && (
-          <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--d-warning-bg)] border border-[var(--d-warning)]/20">
+          <div className="mb-4 px-4 py-3 bg-[var(--d-warning-bg)] border border-[var(--d-warning)]/20">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--d-warning-text)] mb-1">
               Workflow Reload Error
             </p>
@@ -137,7 +137,7 @@ export default function VajraMonitorPage() {
 
         {/* Error banner */}
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-lg bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
+          <div className="mb-4 px-4 py-3 bg-[var(--d-error-bg)] border border-[var(--d-error)]/20">
             <p className="text-[13px] text-[var(--d-error-text)]">
               {error}
             </p>

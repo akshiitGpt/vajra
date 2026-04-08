@@ -404,7 +404,7 @@ export function MarkdownEditor({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         placeholder="Enter prompt content..."
-        className="w-full h-48 p-4 text-[14px] font-mono bg-[var(--d-bg-surface)] border border-[var(--d-border)] rounded-lg resize-none focus:outline-none focus:border-[var(--d-primary)] disabled:opacity-50 disabled:bg-[var(--d-bg-subtle)]"
+        className="w-full h-48 p-4 text-[14px] font-mono bg-[var(--d-bg-surface)] border border-[var(--d-border)] resize-none focus:outline-none focus:border-[var(--d-primary)] disabled:opacity-50 disabled:bg-[var(--d-bg-subtle)]"
       />
     );
   }

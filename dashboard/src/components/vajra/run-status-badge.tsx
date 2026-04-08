@@ -54,7 +54,7 @@ export function RunStatusBadge({ status, className }: RunStatusBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold tracking-wide",
+        "inline-flex items-center px-2 py-0.5 text-[11px] font-semibold tracking-wide",
         style.bg,
         style.text,
         className,

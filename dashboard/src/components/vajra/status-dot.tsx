@@ -33,7 +33,7 @@ export function StatusDot({ variant, pulse, size = "sm", className }: StatusDotP
       {pulse && (
         <span
           className={cn(
-            "absolute inset-0 rounded-full opacity-40 animate-ping",
+            "absolute inset-0 opacity-40 animate-ping",
             VARIANT_CLASSES[variant],
           )}
         />

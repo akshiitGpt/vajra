@@ -114,7 +114,7 @@ export type DropdownProps<T = string> = {
 const triggerStyles = {
   base: [
     "flex items-center justify-between gap-2 w-full",
-    "border rounded-lg",
+    "border",
     "transition-all duration-150 ease-out",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--d-border-focus)]",
     "disabled:opacity-50 disabled:cursor-not-allowed",

@@ -58,12 +58,12 @@ export function SubsectionEditor({
   onMove,
 }: SubsectionEditorProps) {
   return (
-    <div className="border border-[var(--d-border)] bg-[var(--d-bg-subtle)] rounded-lg overflow-hidden">
+    <div className="border border-[var(--d-border)] bg-[var(--d-bg-subtle)] overflow-hidden">
       {/* Subsection header */}
       <div className="flex items-center gap-2 px-3 py-2 bg-[var(--d-bg-hover)] group">
         <button
           onClick={onToggle}
-          className="flex items-center gap-2 flex-1 text-left -ml-1 pl-1 py-0.5 rounded transition-colors"
+          className="flex items-center gap-2 flex-1 text-left -ml-1 pl-1 py-0.5 transition-colors"
         >
           <span className="w-3.5 h-3.5 flex-shrink-0 text-[var(--d-text-tertiary)]">
             {isExpanded ? (
@@ -81,7 +81,7 @@ export function SubsectionEditor({
               onBlur={onHeadingBlur}
               onClick={(e) => e.stopPropagation()}
               autoFocus
-              className="flex-1 text-[13px] font-medium text-[var(--d-text-primary)] bg-[var(--d-bg-surface)] border border-[var(--d-primary)] rounded px-2 py-0.5 focus:outline-none"
+              className="flex-1 text-[13px] font-medium text-[var(--d-text-primary)] bg-[var(--d-bg-surface)] border border-[var(--d-primary)] px-2 py-0.5 focus:outline-none"
             />
           ) : (
             <span className="text-[13px] font-medium text-[var(--d-text-primary)]">
@@ -162,7 +162,7 @@ export function SubsectionEditor({
             disabled={disabled}
             rows={Math.max(3, subsection.content.split("\n").length + 1)}
             placeholder="Enter subsection content..."
-            className="w-full p-3 text-[13px] font-mono bg-[var(--d-bg-surface)] border border-[var(--d-border)] rounded resize-none focus:outline-none focus:border-[var(--d-primary)] disabled:opacity-50"
+            className="w-full p-3 text-[13px] font-mono bg-[var(--d-bg-surface)] border border-[var(--d-border)] resize-none focus:outline-none focus:border-[var(--d-primary)] disabled:opacity-50"
           />
         </div>
       )}

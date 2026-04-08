@@ -215,7 +215,7 @@ export function Dialog({
             <button
               onClick={handleClose}
               className={cn(
-                "p-1.5 -mt-1 -mr-1 rounded-lg",
+                "p-1.5 -mt-1 -mr-1",
                 "text-[var(--d-text-tertiary)]",
                 "hover:bg-[var(--d-bg-hover)] hover:text-[var(--d-text-primary)]",
                 "transition-colors duration-150"
@@ -400,7 +400,7 @@ export function AlertDialog({
       <DialogBody className="text-center">
         <div
           className={cn(
-            "w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center",
+            "w-12 h-12 mx-auto mb-3 flex items-center justify-center",
             bgColor
           )}
         >
@@ -545,7 +545,7 @@ export function PromptDialog({
           className={cn(
             "w-full px-3 py-2 text-[14px]",
             "bg-[var(--d-bg-surface)] text-[var(--d-text-primary)]",
-            "border rounded-lg",
+            "border",
             "focus:outline-none focus:ring-2 focus:ring-[var(--d-border-focus)]",
             error
               ? "border-[var(--d-error)]"

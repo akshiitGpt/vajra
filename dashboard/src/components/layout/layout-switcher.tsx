@@ -20,15 +20,15 @@ export function LayoutSwitcher({ children }: LayoutSwitcherProps) {
   }
 
   if (isMobile === null) {
-    return <div className="min-h-screen bg-[#f0f0f0]" aria-hidden="true" />;
+    return <div className="min-h-screen bg-[#F5F5F3]" aria-hidden="true" />;
   }
 
   if (isMobile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f0f0f0] p-6">
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F5F3] p-6">
         <div className="text-center">
-          <p className="text-[15px] font-medium text-[#1a1a1a]">Desktop Only</p>
-          <p className="mt-2 text-[13px] text-[#8e8e93]">
+          <p className="text-[15px] font-medium text-[#111111]">Desktop Only</p>
+          <p className="mt-2 text-[13px] text-[#888888]">
             This dashboard is optimized for desktop browsers.
           </p>
         </div>
