@@ -8,6 +8,7 @@ import {
   BotIcon,
   DocumentIcon,
   GearIcon,
+  KnowledgeIcon,
   WorkflowIcon,
   WrenchIcon,
 } from "@/components/ui/icons";
@@ -89,6 +90,12 @@ export function Toolbar() {
           href="/vajra/workflows"
           icon={<WorkflowIcon className="w-[18px] h-[18px]" />}
           label="Workflows"
+          matchPrefix
+        />
+        <ToolbarItem
+          href="/vajra/knowledge"
+          icon={<KnowledgeIcon className="w-[18px] h-[18px]" />}
+          label="Knowledge"
           matchPrefix
         />
         <ToolbarItem

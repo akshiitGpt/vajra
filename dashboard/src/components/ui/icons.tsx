@@ -59,6 +59,7 @@ import {
   LuBot,
   LuWorkflow,
   LuWrench,
+  LuBookOpen,
 } from "react-icons/lu";
 
 // Re-export with app-specific names
@@ -120,4 +121,5 @@ export {
   LuBot as BotIcon,
   LuWorkflow as WorkflowIcon,
   LuWrench as WrenchIcon,
+  LuBookOpen as KnowledgeIcon,
 };

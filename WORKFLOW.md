@@ -174,10 +174,27 @@ agents:
     skills:
       - vajra-scout-review
 multi_repo:
-  knowledge_repo: akshiitGpt/service-knowledge
-  knowledge_branch: main
+  knowledge_repo: ruh-ai/ruh-knowledge-base
+  knowledge_branch: master
   scout_workflow: scout
   execution_workflow: default
   max_parallel_repos: 3
   coordination_comment: true
+  repos:
+    agent-platform:
+      url: https://github.com/ruh-ai/agent-platform-v2
+      default_branch: main
+      stack: Python, Poetry, LangGraph, Redis Streams
+    agent-gateway:
+      url: https://github.com/ruh-ai/agent-gateway
+      default_branch: main
+      stack: Python, FastAPI, gRPC, Redis Streams, SSE
+    communication-service:
+      url: https://github.com/ruh-ai/communication-service
+      default_branch: main
+      stack: Python, gRPC, MongoDB, Beanie
+    ai-gateway:
+      url: https://github.com/ruh-ai/ai-gateway
+      default_branch: main
+      stack: Python, FastAPI, OpenRouter, Kafka
 ---
