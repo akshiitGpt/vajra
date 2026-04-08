@@ -42,21 +42,21 @@ interface KBTree {
 // ---------------------------------------------------------------------------
 
 async function fetchFileList(): Promise<KBFileEntry[]> {
-  const res = await fetch("/api/vajra/knowledge");
+  const res = await fetch("/api/knowledge");
   if (!res.ok) throw new Error("Failed to load knowledge base index");
   const data = await res.json();
   return data.files as KBFileEntry[];
 }
 
 async function fetchFileContent(filePath: string): Promise<string> {
-  const res = await fetch(`/api/vajra/knowledge/file?path=${encodeURIComponent(filePath)}`);
+  const res = await fetch(`/api/knowledge/file?path=${encodeURIComponent(filePath)}`);
   if (!res.ok) throw new Error("Failed to load file");
   const data = await res.json();
   return data.content as string;
 }
 
 async function saveFileContent(filePath: string, content: string): Promise<void> {
-  const res = await fetch("/api/vajra/knowledge/file", {
+  const res = await fetch("/api/knowledge/file", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path: filePath, content }),
