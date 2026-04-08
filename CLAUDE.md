@@ -95,7 +95,7 @@ The `after_create` hook uses `${VAJRA_CLONE_URL}` so the coordinator can point e
 - All design tokens in `dashboard/src/lib/design/tokens.ts`
 - React Flow for pipeline graph visualization
 - SSE for real-time updates from orchestrator
-- Pages: Monitor, Agents, Skills, Workflows, Config
+- Pages: Monitor, Agents, Skills, Workflows, Knowledge Base, Config
 
 ## Code Style
 
@@ -116,4 +116,8 @@ The `after_create` hook uses `${VAJRA_CLONE_URL}` so the coordinator can point e
 - `pipelines/scout.dot` — multi-repo scout workflow graph
 - `orchestrator/skills/vajra-scout/SKILL.md` — scout agent instructions
 - `orchestrator/skills/vajra-scout-review/SKILL.md` — scout review instructions
+- `orchestrator/src/multi-repo-coordinator.ts` — multi-repo orchestration (scout + per-repo + coordination)
+- `orchestrator/src/scout-plan-validator.ts` — validates scout plan JSON schema
+- `knowledge-base/` — embedded ruh-knowledge-base (45 docs on services, architecture, workflows)
 - `dashboard/src/app/globals.css` — design tokens and base styles
+- `dashboard/src/app/vajra/knowledge/page.tsx` — knowledge base browser/editor
