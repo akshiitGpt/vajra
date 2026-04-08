@@ -1,0 +1,30 @@
+digraph ScoutPipeline {
+  graph [goal="Investigate a cross-service issue and produce a multi-repo execution plan"]
+
+  start [shape=Mdiamond]
+  exit  [shape=Msquare]
+  escalate [shape=Msquare, exit_reason="human_review"]
+
+  scout [
+    type="agent",
+    label="Scout",
+    agent="scout",
+    thread="scouting",
+    max_visits="3",
+    on_exhaustion="escalate",
+    artifact_path=".vajra/run/scout-plan.json"
+  ]
+
+  review_scout [
+    type="agent",
+    label="Review Scout Plan",
+    agent="scout-reviewer",
+    artifact_path=".vajra/run/scout-review.md"
+  ]
+
+  start -> scout
+  scout -> review_scout
+  review_scout -> exit [on_label="lgtm"]
+  review_scout -> scout [on_label="revise"]
+  review_scout -> escalate [on_label="escalate"]
+}

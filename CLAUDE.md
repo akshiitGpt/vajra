@@ -62,9 +62,31 @@ On escalation: → Require Changes
 
 ## Pipeline Flow
 
+### Single-repo (default)
 `Plan → Review Plan → Code → Review Code → Prepare PR → Publish PR`
 
+### Multi-repo (Option C — two-phase)
+```
+Scout Phase:  Scout → Review Scout Plan → (validated plan JSON)
+     ↓
+Per-Repo:     Plan → Review → Code → Review → PR  (×N repos in parallel)
+     ↓
+Coordination: Cross-link PRs, update Linear
+```
+
+The scout runs in a knowledge repo workspace (`akshiitGpt/service-knowledge`), reads `services/*/SERVICE.md` files, clones candidate repos to investigate, and outputs a `scout-plan.json` listing which repos need changes.
+
 Review stages output labels: `lgtm` (proceed), `revise` (loop back), `escalate` (human needed). Max 4 revision visits per stage before escalation. Global budget: 20 agent invocations per run.
+
+## Multi-Repo Config
+
+`WORKFLOW.md` has a `multi_repo` section:
+- `knowledge_repo` — repo with SERVICE.md files describing all services
+- `scout_workflow` — pipeline for investigation phase
+- `execution_workflow` — pipeline for per-repo coding (reuses `default`)
+- `max_parallel_repos` — concurrency limit for per-repo runs
+
+The `after_create` hook uses `${VAJRA_CLONE_URL}` so the coordinator can point each workspace at the right repo.
 
 ## Dashboard Design
 
@@ -91,4 +113,7 @@ Review stages output labels: `lgtm` (proceed), `revise` (loop back), `escalate` 
 - `orchestrator/src/pipeline.ts` — pipeline execution engine
 - `orchestrator/src/types.ts` — all TypeScript types
 - `pipelines/default.dot` — default workflow graph
+- `pipelines/scout.dot` — multi-repo scout workflow graph
+- `orchestrator/skills/vajra-scout/SKILL.md` — scout agent instructions
+- `orchestrator/skills/vajra-scout-review/SKILL.md` — scout review instructions
 - `dashboard/src/app/globals.css` — design tokens and base styles

@@ -24,7 +24,7 @@ artifacts:
   workspace_dir: .vajra
 hooks:
   after_create: |
-    git clone --depth 1 --branch ${VAJRA_BASE_BRANCH:-main} https://github.com/akshiitGpt/vajra.git .
+    git clone --depth 1 --branch ${VAJRA_BASE_BRANCH:-main} ${VAJRA_CLONE_URL:-https://github.com/akshiitGpt/vajra.git} .
   before_run: |
     git fetch origin ${VAJRA_BASE_BRANCH:-main}
     git checkout ${VAJRA_BASE_BRANCH:-main}
@@ -46,6 +46,10 @@ workflows:
     dot_file: pipelines/default.dot
     success_state: Code Review
     inspect_pr: true
+  scout:
+    dot_file: pipelines/scout.dot
+    success_state: In Progress
+    inspect_pr: false
 workflow_routing:
   default_workflow: default
   by_label: {}
@@ -138,4 +142,42 @@ agents:
       Target: origin/{{ target_branch }}
       Do not create or update the PR directly. The workflow's publish_pr tool step owns GitHub mutation.
     reasoning_effort: high
+  scout:
+    backend: claude
+    model: claude-opus-4-6
+    prompt: |-
+      Use the `vajra-scout` skill.
+
+      Issue: {{ issue.identifier }} — {{ issue.title }}
+      {{ issue.description }}
+
+      Read: all services/*/SERVICE.md files in this workspace
+      Investigate: clone candidate repos temporarily and check relevant code
+      Write: .vajra/run/scout-plan.json
+    reasoning_effort: high
+    skills:
+      - vajra-scout
+  scout-reviewer:
+    backend: claude
+    model: claude-opus-4-6
+    prompt: |-
+      Use the `vajra-scout-review` skill.
+
+      Issue: {{ issue.identifier }} — {{ issue.title }}
+      {{ issue.description }}
+
+      Read: .vajra/run/scout-plan.json
+      Write: .vajra/run/scout-review.md
+      Write structured review outcome: .vajra/run/stages/{{ stage.id }}/result.json
+      Allowed labels: lgtm, revise, escalate
+    reasoning_effort: high
+    skills:
+      - vajra-scout-review
+multi_repo:
+  knowledge_repo: akshiitGpt/service-knowledge
+  knowledge_branch: main
+  scout_workflow: scout
+  execution_workflow: default
+  max_parallel_repos: 3
+  coordination_comment: true
 ---
