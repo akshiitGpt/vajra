@@ -152,6 +152,58 @@ export interface DispatchPlan {
   triage: TriageDecision | null;
 }
 
+export interface MultiRepoEntry {
+  url: string;
+  defaultBranch: string;
+  stack: string;
+}
+
+export interface MultiRepoConfig {
+  knowledgeRepo: string;
+  knowledgeBranch: string;
+  scoutWorkflow: string;
+  executionWorkflow: string;
+  maxParallelRepos: number;
+  coordinationComment: boolean;
+  repos: Record<string, MultiRepoEntry>;
+}
+
+export interface ScoutRepoPlan {
+  repository: string;
+  baseBranch: string;
+  targetBranch: string;
+  mergeStrategy: "pr-only" | "auto-merge";
+  reasoning: string;
+  scopeSummary: string;
+  dependencies: string[];
+  priority: number;
+}
+
+export interface ScoutPlanArtifact {
+  issueIdentifier: string;
+  repos: ScoutRepoPlan[];
+  crossRepoNotes: string;
+  coordinationStrategy: "independent" | "sequential";
+}
+
+export interface MultiRepoRunEntry {
+  repository: string;
+  dispatchPlan: DispatchPlan;
+  status: "pending" | "running" | "success" | "failure";
+  prUrl: string | null;
+  error: string | null;
+}
+
+export interface MultiRepoDispatchPlan {
+  issueId: string;
+  issueIdentifier: string;
+  scoutPlan: ScoutPlanArtifact;
+  repoRuns: MultiRepoRunEntry[];
+  status: "pending" | "running" | "completed" | "failed";
+  startedAt: string;
+  finishedAt: string | null;
+}
+
 export interface WorkflowConfig {
   tracker: TrackerConfig;
   polling: PollingConfig;
@@ -168,6 +220,7 @@ export interface WorkflowConfig {
   agents: Record<string, AgentDefinition>;
   github: GitHubConfig | null;
   slack: SlackConfig | null;
+  multiRepo: MultiRepoConfig | null;
 }
 
 export type WorkflowDocument = WorkflowConfig;

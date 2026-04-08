@@ -14,6 +14,8 @@ import {
   FanOutDefinition,
   GitHubConfig,
   GraphNode,
+  MultiRepoConfig,
+  MultiRepoEntry,
   SlackConfig,
   TriageConfig,
   WorkflowConfig,
@@ -207,6 +209,60 @@ function parseEscalationConfig(rawValue: unknown): EscalationConfig | null {
     linearState: parseRequiredString(escalation.linear_state, "escalation.linear_state"),
     comment: escalation.comment !== false,
     slackNotify: escalation.slack_notify !== false,
+  };
+}
+
+function parseMultiRepoConfig(rawValue: unknown, workflows: Record<string, WorkflowEntry>): MultiRepoConfig | null {
+  if (rawValue === undefined || rawValue === null) {
+    return null;
+  }
+
+  if (typeof rawValue !== "object" || Array.isArray(rawValue)) {
+    throw new Error("multi_repo must be a map");
+  }
+
+  const mr = rawValue as Record<string, unknown>;
+  const knowledgeRepo = parseRequiredString(mr.knowledge_repo, "multi_repo.knowledge_repo");
+  const knowledgeBranch = typeof mr.knowledge_branch === "string" ? mr.knowledge_branch.trim() : "main";
+  const scoutWorkflow = parseRequiredString(mr.scout_workflow, "multi_repo.scout_workflow");
+  const executionWorkflow = typeof mr.execution_workflow === "string"
+    ? mr.execution_workflow.trim()
+    : "default";
+
+  if (!workflows[scoutWorkflow]) {
+    throw new Error(`multi_repo.scout_workflow references unknown workflow "${scoutWorkflow}"`);
+  }
+  if (!workflows[executionWorkflow]) {
+    throw new Error(`multi_repo.execution_workflow references unknown workflow "${executionWorkflow}"`);
+  }
+
+  const maxParallelRepos = parsePositiveInt(mr.max_parallel_repos, 3);
+  const coordinationComment = mr.coordination_comment !== false;
+
+  const parsedRepos: Record<string, MultiRepoEntry> = {};
+  const rawRepos = mr.repos;
+  if (rawRepos && typeof rawRepos === "object" && !Array.isArray(rawRepos)) {
+    for (const [name, entry] of Object.entries(rawRepos as Record<string, unknown>)) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        throw new Error(`multi_repo.repos.${name} must be a map`);
+      }
+      const repoEntry = entry as Record<string, unknown>;
+      parsedRepos[name] = {
+        url: parseRequiredString(repoEntry.url, `multi_repo.repos.${name}.url`),
+        defaultBranch: typeof repoEntry.default_branch === "string" ? repoEntry.default_branch.trim() : "main",
+        stack: typeof repoEntry.stack === "string" ? repoEntry.stack.trim() : "",
+      };
+    }
+  }
+
+  return {
+    knowledgeRepo,
+    knowledgeBranch,
+    scoutWorkflow,
+    executionWorkflow,
+    maxParallelRepos,
+    coordinationComment,
+    repos: parsedRepos,
   };
 }
 
@@ -488,6 +544,26 @@ function workflowDocumentRecord(document: WorkflowDocument): Record<string, unkn
         notify_on_failure: document.slack.notifyOnFailure,
       },
     } : {}),
+    ...(document.multiRepo ? {
+      multi_repo: {
+        knowledge_repo: document.multiRepo.knowledgeRepo,
+        knowledge_branch: document.multiRepo.knowledgeBranch,
+        scout_workflow: document.multiRepo.scoutWorkflow,
+        execution_workflow: document.multiRepo.executionWorkflow,
+        max_parallel_repos: document.multiRepo.maxParallelRepos,
+        coordination_comment: document.multiRepo.coordinationComment,
+        repos: Object.fromEntries(
+          Object.entries(document.multiRepo.repos).map(([name, entry]) => [
+            name,
+            {
+              url: entry.url,
+              default_branch: entry.defaultBranch,
+              stack: entry.stack,
+            },
+          ]),
+        ),
+      },
+    } : {}),
   };
 }
 
@@ -670,6 +746,7 @@ async function parseWorkflowSourceDocument(
   const parsedFanOut = parseFanOutConfig(fanOut, new Set(Object.keys(parsedBackends)), parsedAgents);
   const parsedWorkflows = await parseWorkflowDefinitions(rawConfig, workflowPath);
   const parsedWorkflowRouting = parseWorkflowRouting(rawConfig, parsedWorkflows);
+  const parsedMultiRepo = parseMultiRepoConfig(rawConfig.multi_repo, parsedWorkflows);
 
   return {
     tracker: {
@@ -716,6 +793,7 @@ async function parseWorkflowSourceDocument(
     agents: parsedAgents,
     github: parseGitHubConfig(github),
     slack: parseSlackConfig(slack),
+    multiRepo: parsedMultiRepo,
   };
 }
 
@@ -864,6 +942,14 @@ function resolveWorkflowConfig(document: WorkflowDocument, workflowPath: string)
     ),
     github: resolveGitHubConfig(document.github),
     slack: resolveSlackConfig(document.slack),
+    multiRepo: document.multiRepo
+      ? {
+          ...document.multiRepo,
+          repos: Object.fromEntries(
+            Object.entries(document.multiRepo.repos).map(([name, entry]) => [name, { ...entry }]),
+          ),
+        }
+      : null,
   };
 }
 

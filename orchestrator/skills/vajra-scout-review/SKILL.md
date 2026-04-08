@@ -1,3 +1,8 @@
+---
+name: vajra-scout-review
+description: Review and validate a multi-repo scout plan for completeness and minimality.
+---
+
 # Scout Review — Validate Multi-Repo Plan
 
 You are a senior engineer reviewing a scout plan that identifies which repositories need changes for a cross-service issue.

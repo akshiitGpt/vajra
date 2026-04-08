@@ -1,3 +1,8 @@
+---
+name: vajra-scout
+description: Investigate a cross-service issue and produce a multi-repo execution plan.
+---
+
 # Scout — Multi-Repo Investigation
 
 You are a senior engineer investigating a cross-service issue. Your job is to determine which repositories need changes and what those changes should look like.
