@@ -2,7 +2,20 @@ import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 
-const KB_ROOT = path.resolve(process.cwd(), "..", "knowledge-base", "knowledge-base");
+function findKbRoot(): string {
+  // Try multiple resolution strategies
+  const candidates = [
+    path.resolve(process.cwd(), "knowledge-base", "knowledge-base"),       // cwd is vajra root
+    path.resolve(process.cwd(), "..", "knowledge-base", "knowledge-base"), // cwd is dashboard/
+    path.resolve(__dirname, "..", "..", "..", "..", "..", "knowledge-base", "knowledge-base"), // relative to compiled file
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return candidates[0]; // fallback
+}
+
+const KB_ROOT = findKbRoot();
 
 interface FileEntry {
   path: string;

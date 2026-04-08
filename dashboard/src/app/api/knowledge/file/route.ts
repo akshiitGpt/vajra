@@ -2,7 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 
-const KB_ROOT = path.resolve(process.cwd(), "..", "knowledge-base", "knowledge-base");
+function findKbRoot(): string {
+  const candidates = [
+    path.resolve(process.cwd(), "knowledge-base", "knowledge-base"),
+    path.resolve(process.cwd(), "..", "knowledge-base", "knowledge-base"),
+    path.resolve(__dirname, "..", "..", "..", "..", "..", "knowledge-base", "knowledge-base"),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return candidates[0];
+}
+
+const KB_ROOT = findKbRoot();
 
 function safePath(filePath: string): string | null {
   const resolved = path.resolve(KB_ROOT, filePath);
