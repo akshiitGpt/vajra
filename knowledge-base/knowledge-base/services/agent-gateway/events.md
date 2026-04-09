@@ -1,25 +1,25 @@
 ---
 title: "Agent Gateway — Events"
 category: services
-tags: [agent-gateway, events, redis-streams, sse, kafka]
+tags: [agent-gateway, events, kafka, sse]
 owner: "@backend"
-last_updated: "2026-04-02"
+last_updated: "2026-04-09"
 source: repo
 ---
 
 # Agent Gateway — Events
 
-The agent-gateway uses **Redis Streams** as the primary messaging layer for chat and **Kafka** as a secondary event bus.
+The agent-gateway uses **Kafka** as the primary messaging layer for chat and **Redis** for caching, sessions, and bot config.
 
 ---
 
-## Redis Streams
+## Kafka (Chat — Primary)
 
-### Produced Streams
+### Produced Topics
 
-| Stream | Description |
-|--------|-------------|
-| `{env}:agent:chat:requests` | User chat messages published for agent-platform to consume |
+| Topic | Key | Description |
+|-------|-----|-------------|
+| `agent_chat_requests` | `conversation_id` | User chat messages published for agent-platform to consume |
 
 **Payload structure** (chat request):
 ```json
@@ -35,36 +35,30 @@ The agent-gateway uses **Redis Streams** as the primary messaging layer for chat
 }
 ```
 
-### Consumed Streams
+### Consumed Topics
 
-| Stream | Description |
-|--------|-------------|
-| `{env}:agent:chat:responses:{conv_id}-{req_id}` | Per-request response stream from agent-platform |
+| Topic | Key | Description |
+|-------|-----|-------------|
+| `agent_chat_responses` | `request_id` | Streamed response events from agent-platform |
 
-Each response stream is scoped to a single request. The gateway reads from it and forwards events as SSE to the client.
+Each gateway instance runs its own independent consumer (unique group ID per instance, e.g., `api-gateway-{hostname}`) so every instance sees all response messages. Messages are routed to active SSE connections by `request_id`.
 
-### Consumer Groups
-
-| Group | Service | Stream |
-|-------|---------|--------|
-| `agent-processors` | agent-platform | `{env}:agent:chat:requests` |
-| `api-gateway-consumers` | agent-gateway | `{env}:agent:chat:responses:*` |
-
-### Stream Lifecycle
+### Chat Lifecycle
 
 1. Client sends `POST /api/v1/agents/chat/stream`
-2. Gateway publishes to `{env}:agent:chat:requests`
+2. Gateway publishes to Kafka topic `agent_chat_requests`
 3. Agent-platform picks up from consumer group `agent-processors`
-4. Agent-platform writes response chunks to `{env}:agent:chat:responses:{conv_id}-{req_id}`
-5. Gateway reads from response stream via consumer group `api-gateway-consumers`
-6. Gateway forwards each chunk as an SSE event to the client
-7. On `stream_end`, the response stream is cleaned up
+4. Agent-platform publishes response events to `agent_chat_responses` (key: `request_id`)
+5. Gateway's background Kafka consumer reads all response messages
+6. Gateway matches `request_id` to active SSE connection and enqueues event
+7. Gateway forwards each event as SSE to the client
+8. On `STREAM_END`, the request_id is deregistered
 
 ---
 
 ## SSE Event Types
 
-Events flowing through Redis response streams and forwarded to clients via SSE:
+Events flowing through Kafka response topic and forwarded to clients via SSE:
 
 | Event | Description | Key Fields |
 |-------|-------------|------------|
@@ -101,37 +95,29 @@ data: {}
 
 ---
 
-## Kafka Topics (Secondary)
+## Kafka Topics (Other)
 
-Kafka is configured but secondary to Redis Streams for the core chat flow. Topics include:
+Additional Kafka topics beyond the core chat flow:
 
 | Topic | Direction | Description |
 |-------|-----------|-------------|
-| `agent_chat_requests` | Produce | Chat requests (mirror of Redis stream) |
-| `agent_chat_responses` | Consume | Chat responses (mirror of Redis stream) |
 | `agent_session_deletion_requests` | Produce | Session cleanup requests |
 | `agent_task_requests` | Produce | Task execution requests |
 | `orchestration_team_*` | Both | Multi-agent orchestration events |
 | `human_input_*` | Both | Human-in-the-loop approval events |
 | `workflow-responses` | Consume | Workflow execution results |
 
-Kafka is used for:
-- Event durability and replay
-- Cross-service event fan-out beyond the chat flow
-- Multi-agent orchestration coordination
-- Workflow and task management
-
 ---
 
 ## Event Flow Diagram
 
 ```
-                    Redis Streams                    SSE
-Client ──POST──► Gateway ──publish──► agent:chat:requests
+                      Kafka                          SSE
+Client ──POST──► Gateway ──produce──► agent_chat_requests
                                            │
                                      agent-platform
                                            │
-                 Gateway ◄──read──── agent:chat:responses:{id}
+                 Gateway ◄──consume── agent_chat_responses
 Client ◄──SSE──┘
 ```
 
@@ -140,4 +126,4 @@ Client ◄──SSE──┘
 - [services/agent-gateway/api.md](api.md) — SSE endpoint details
 - [services/agent-gateway/overview.md](overview.md) — Service overview
 - [services/agent-platform/events.md](../agent-platform/events.md) — Agent-platform event handling
-- [data/events/redis-streams.md](../../data/events/redis-streams.md) — Redis Streams contracts
+- [data/events/kafka-events.md](../../data/events/kafka-events.md) — Kafka event contracts

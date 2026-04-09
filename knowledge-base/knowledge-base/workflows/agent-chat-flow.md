@@ -3,7 +3,7 @@ title: "Agent Chat Flow"
 category: workflows
 tags: [workflow, agent, chat, end-to-end]
 owner: "@backend"
-last_updated: "2026-03-31"
+last_updated: "2026-04-09"
 source: manual
 ---
 
@@ -19,8 +19,9 @@ End-to-end lifecycle of a user chat message through the Ruh AI platform.
 2. API Gateway receives HTTP request
    │  Authenticates user, resolves org_id + agent_id
    │
-3. API Gateway publishes to Redis Stream
-   │  Stream: {env}:agent:chat:requests
+3. API Gateway publishes to Kafka topic
+   │  Topic: agent_chat_requests
+   │  Key: conversation_id
    │  Payload: { org_id, agent_id, conversation_id, request_id, message }
    │
 4. Agent Platform worker consumes the message
@@ -48,12 +49,13 @@ End-to-end lifecycle of a user chat message through the Ruh AI platform.
    │  ├── Calls LLM via AI Gateway for each step
    │  └── Generates final response
    │
-9. Response events stream to Redis
-   │  Stream: {env}:agent:chat:responses:{conv_id}-{req_id}
+9. Response events stream to Kafka topic
+   │  Topic: agent_chat_responses
+   │  Key: request_id
    │  Events: STREAM_START → MESSAGE → TOOL_* → STREAM_END
    │
-10. API Gateway consumes response stream
-    │  Converts to SSE and streams to client
+10. API Gateway consumes response topic
+    │  Each instance reads all messages, routes by request_id to active SSE connections
     │
 11. Conversation checkpoint saved to MongoDB
     │
@@ -69,8 +71,8 @@ End-to-end lifecycle of a user chat message through the Ruh AI platform.
 
 | Step | Duration |
 |------|----------|
-| API Gateway → Redis publish | ~5ms |
-| Redis → Worker consume | ~10ms |
+| API Gateway → Kafka publish | ~5-10ms |
+| Kafka → Worker consume | ~10ms |
 | Agent config fetch | ~50ms |
 | Checkpoint load | ~30ms |
 | Memory retrieval | ~100ms |
@@ -93,4 +95,4 @@ End-to-end lifecycle of a user chat message through the Ruh AI platform.
 - [architecture/data-flow.md](../architecture/data-flow.md) — Data lifecycle
 - [architecture/communication.md](../architecture/communication.md) — Protocol details
 - [services/agent-platform/overview.md](../services/agent-platform/overview.md) — Agent execution engine
-- [data/events/redis-streams.md](../data/events/redis-streams.md) — Stream event schemas
+- [data/events/kafka-events.md](../data/events/kafka-events.md) — Chat event schemas (Kafka)

@@ -1,9 +1,9 @@
 ---
 title: "Communication Patterns"
 category: architecture
-tags: [architecture, communication, protocols, redis, websocket]
+tags: [architecture, communication, protocols, kafka, redis, websocket]
 owner: "@team-lead"
-last_updated: "2026-03-31"
+last_updated: "2026-04-09"
 source: manual
 ---
 
@@ -11,27 +11,49 @@ source: manual
 
 ## Overview
 
-Services in the Ruh AI platform communicate using three patterns:
+Services in the Ruh AI platform communicate using four patterns:
 
 | Pattern | Protocol | Used For |
 |---------|----------|----------|
-| **Async messaging** | Redis Streams | Agent chat requests/responses (primary data path) |
+| **Async messaging (chat)** | Kafka | Agent chat requests/responses (primary data path) |
+| **Async messaging (other)** | Redis Streams | Workflow, memory, stop signals |
 | **Synchronous calls** | REST/HTTP | Config fetches, tool execution, service-to-service |
 | **Real-time streaming** | WebSocket | Agent Gateway ↔ Frontend (chat + file events) |
 
-## Redis Streams (Primary)
+## Kafka (Chat — Primary)
 
-The main communication channel between API Gateway and Agent Platform. Enables horizontal scaling via consumer groups.
+The primary transport for agent chat requests and responses between API Gateway and Agent Platform.
 
-### Stream Naming Convention
+| Topic | Producer | Consumer | Key |
+|-------|----------|----------|-----|
+| `agent_chat_requests` | Agent Gateway | Agent Platform (consumer group: `agent-processors`) | `conversation_id` |
+| `agent_chat_responses` | Agent Platform | Agent Gateway (per-instance consumer) | `request_id` |
+| `agent_chat_requests_dlq` | Agent Platform | Ops / alerting | — |
 
-All streams are prefixed with the environment: `{env}:` (dev, qa, main).
+No env-prefix on Kafka topics — environment isolation is handled at the Kafka cluster/namespace level.
+
+### Response Event Types
+
+Events flow through `agent_chat_responses` in this order:
+
+```
+STREAM_START → MESSAGE_START → MESSAGE* → MESSAGE_END →
+  [TOOL_START → TOOL_STREAM* → TOOL_END]* →
+  [THINKING_START → THINKING* → THINKING_END] →
+  [DELEGATING_START → DELEGATING_END] →
+STREAM_END
+```
+
+See: [data/events/kafka-events.md](../data/events/kafka-events.md)
+
+## Redis Streams (Non-Chat)
+
+Used for workflow, memory, and stop signal flows. All streams are prefixed with the environment: `{env}:` (dev, qa, main).
 
 ### Request Streams (consumed by Agent Platform)
 
 | Stream | Purpose |
 |--------|---------|
-| `{env}:agent:chat:requests` | Incoming agent chat messages |
 | `{env}:workflow:requests` | Workflow generation requests |
 | `{env}:workflow:chat:requests` | Workflow conversation requests |
 | `{env}:memory:requests` | Memory storage requests |
@@ -41,20 +63,7 @@ All streams are prefixed with the environment: `{env}:` (dev, qa, main).
 
 | Stream | Purpose |
 |--------|---------|
-| `{env}:agent:chat:responses:{conversation_id}-{request_id}` | Per-conversation streamed responses |
 | `{env}:workflow:responses:{request_id}` | Workflow generation responses |
-
-### Stream Event Types
-
-Events flow through response streams in this order:
-
-```
-STREAM_START → MESSAGE_START → MESSAGE* → MESSAGE_END →
-  [TOOL_START → TOOL_STREAM* → TOOL_END]* →
-  [THINKING_START → THINKING* → THINKING_END] →
-  [DELEGATING_START → DELEGATING_END] →
-STREAM_END
-```
 
 See: [data/events/redis-streams.md](../data/events/redis-streams.md)
 
@@ -104,7 +113,7 @@ One-way event publishing for analytics. Agent Platform produces; analytics consu
 | `analytics-service-agent-activity-events` | Tool calls, errors, session data |
 | `token-usage-events` | LLM token consumption metrics |
 
-See: [data/events/kafka-events.md](../data/events/kafka-events.md)
+See: [data/events/kafka-events.md](../data/events/kafka-events.md) for all Kafka topic contracts (chat + analytics)
 
 ## See Also
 
