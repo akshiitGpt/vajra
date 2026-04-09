@@ -55,7 +55,7 @@ workflow_routing:
   by_label: {}
 backends:
   claude:
-    command: claude --model {{ model }} -p {{ prompt | shellquote }}
+    command: claude --model {{ model }} --permission-mode bypassPermissions -p {{ prompt | shellquote }}
   codex:
     command: codex exec --model {{ model }} {{ prompt | shellquote }}
 agents:

@@ -35,7 +35,7 @@ export class ShellCommandRunner implements CommandRunner {
         return;
       }
 
-      const child = spawn("sh", ["-lc", command], {
+      const child = spawn("sh", ["-c", command], {
         cwd: opts.cwd,
         env: { ...process.env, ...opts.env },
         detached: useProcessGroup,

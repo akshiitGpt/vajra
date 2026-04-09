@@ -90,7 +90,12 @@ export class WorkspaceManager {
     await this.cleanTmpArtifacts(workspacePath);
 
     if (createdNow) {
-      await this.runHook("after_create", this.hooksConfig.afterCreate, workspacePath, true, hookEnv);
+      try {
+        await this.runHook("after_create", this.hooksConfig.afterCreate, workspacePath, true, hookEnv);
+      } catch (error) {
+        await rm(workspacePath, { recursive: true, force: true });
+        throw error;
+      }
       this.eventBus?.emit({
         type: "workspace:created",
         timestamp: new Date().toISOString(),

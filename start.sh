@@ -22,6 +22,13 @@ cd "$SCRIPT_DIR"
 
 # --- Environment -----------------------------------------------------------
 
+# Load .env file if present (does not override existing env vars)
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  set -a
+  . "$SCRIPT_DIR/.env"
+  set +a
+fi
+
 if [ -z "${LINEAR_API_KEY:-}" ]; then
   fail "LINEAR_API_KEY is not set. Export it first:\n  export LINEAR_API_KEY=\"lin_api_...\""
 fi
