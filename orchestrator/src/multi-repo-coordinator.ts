@@ -205,9 +205,14 @@ export class MultiRepoCoordinator {
       const repoName = repoNameFromFullName(repoPlan.repository);
       const repoIdentifier = `${issue.identifier}__${safeIdentifier(repoName)}`;
 
-      // Resolve the clone URL from config.repos or construct from the repository name
+      // Resolve the clone URL: prefer scout plan cloneUrl (from knowledge base),
+      // then fall back to config.repos, then construct from repository name
       const repoConfig = this.config.repos[repoName] ?? this.config.repos[repoPlan.repository];
-      const cloneUrl = repoConfig?.url ?? `https://github.com/${repoPlan.repository}.git`;
+      const cloneUrl = repoPlan.cloneUrl
+        ? (repoPlan.cloneUrl.endsWith(".git") ? repoPlan.cloneUrl : `${repoPlan.cloneUrl}.git`)
+        : repoConfig?.url
+          ? (repoConfig.url.endsWith(".git") ? repoConfig.url : `${repoConfig.url}.git`)
+          : `https://github.com/${repoPlan.repository}.git`;
       const baseBranch = repoPlan.baseBranch;
 
       const hookEnv: Record<string, string> = {

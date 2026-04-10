@@ -1,0 +1,103 @@
+digraph MultiRepoPipeline {
+  graph [goal="Scout affected repos, plan, implement, and ship PRs for a multi-repo issue"]
+
+  start [shape=Mdiamond]
+  exit  [shape=Msquare]
+  escalate [shape=Msquare, exit_reason="human_review"]
+
+  scout [
+    type="agent",
+    label="Scout",
+    agent="scout",
+    thread="scouting",
+    max_visits="3",
+    on_exhaustion="escalate",
+    artifact_path=".vajra/run/scout-plan.json"
+  ]
+
+  review_scout [
+    type="agent",
+    label="Review Scout Plan",
+    agent="scout-reviewer",
+    artifact_path=".vajra/run/scout-review.md"
+  ]
+
+  validate_scout [
+    type="tool",
+    label="Validate Scout Plan",
+    command="vajra validate-scout-plan"
+  ]
+
+  plan [
+    type="agent",
+    label="Plan",
+    agent="planner",
+    thread="planning",
+    max_visits="4",
+    on_exhaustion="escalate",
+    artifact_path=".vajra/run/plan.md"
+  ]
+
+  review_plan [
+    type="agent",
+    label="Review Plan",
+    agent="plan-reviewer",
+    artifact_path=".vajra/run/plan-review.md"
+  ]
+
+  code [
+    type="agent",
+    label="Code",
+    agent="coder",
+    thread="coding",
+    artifact_path=".vajra/run/implementation-summary.md"
+  ]
+
+  review_code [
+    type="agent",
+    label="Review Code",
+    agent="code-reviewer",
+    artifact_path=".vajra/run/code-review.md"
+  ]
+
+  fix_code [
+    type="agent",
+    label="Fix Code",
+    agent="fixer",
+    thread="coding",
+    max_visits="4",
+    on_exhaustion="escalate",
+    artifact_path=".vajra/run/implementation-summary.md"
+  ]
+
+  prepare_pr [
+    type="agent",
+    label="Prepare PR",
+    agent="pr-preparer",
+    artifact_path=".vajra/run/pr-body.md"
+  ]
+
+  publish_pr [
+    type="tool",
+    label="Publish PR",
+    command="vajra publish-pr --title-file .vajra/pr-title.txt --body-file .vajra/run/pr-body.md --base {{ target_branch }}"
+  ]
+
+  start -> scout
+  scout -> review_scout
+  review_scout -> validate_scout [on_label="lgtm"]
+  review_scout -> scout [on_label="revise"]
+  review_scout -> escalate [on_label="escalate"]
+  validate_scout -> plan
+  plan -> review_plan
+  review_plan -> code [on_label="lgtm"]
+  review_plan -> plan [on_label="revise"]
+  review_plan -> escalate [on_label="escalate"]
+  code -> review_code
+  review_code -> prepare_pr [on_label="lgtm"]
+  review_code -> fix_code [on_label="revise"]
+  review_code -> escalate [on_label="escalate"]
+  fix_code -> review_code
+  prepare_pr -> publish_pr
+  publish_pr -> exit
+}

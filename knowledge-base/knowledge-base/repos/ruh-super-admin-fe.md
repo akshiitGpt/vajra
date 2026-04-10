@@ -3,8 +3,9 @@ title: "ruh-super-admin-fe — Code-Level Repo Guide"
 category: repos
 tags: [super-admin, frontend, nextjs, react, typescript, admin-dashboard]
 owner: "@dev-team"
-last_updated: "2026-04-02"
+last_updated: "2026-04-10"
 source: manual
+repo_url: "https://github.com/ruh-ai/ruh-super-admin-fe"
 ---
 
 # ruh-super-admin-fe — Code-Level Repo Guide
