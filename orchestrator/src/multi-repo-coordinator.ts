@@ -285,6 +285,10 @@ export class MultiRepoCoordinator {
           ...workflow,
           config: {
             ...workflow.config,
+            github: workflow.config.github ? {
+              ...workflow.config.github,
+              repository: repoPlan.repository,
+            } : null,
             workflowRouting: {
               ...workflow.config.workflowRouting,
               defaultWorkflow: executionWorkflowName,
