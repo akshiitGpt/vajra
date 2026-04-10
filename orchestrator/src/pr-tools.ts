@@ -3,10 +3,11 @@ import path from "node:path";
 
 import { GitHubClient } from "./github";
 import { CommandResult, CommandRunner } from "./process";
+import { executePreflightRepos } from "./preflight-repos";
 import { executeScoutPlanValidation } from "./scout-plan-validator";
 import { GitHubConfig, PullRequestMetadata, StageMetadata } from "./types";
 
-type BuiltInPrCommand = "publish-pr" | "update-pr" | "validate-scout-plan";
+type BuiltInPrCommand = "publish-pr" | "update-pr" | "validate-scout-plan" | "preflight-repos";
 
 export interface BuiltInToolExecutionResult extends CommandResult {
   resultMetadata?: StageMetadata;
@@ -24,7 +25,8 @@ function tokenizeCommand(command: string): string[] {
 
 function parseArgs(command: string): { subcommand: BuiltInPrCommand; args: Map<string, string | true> } | null {
   const tokens = tokenizeCommand(command);
-  if (tokens[0] !== "vajra" || (tokens[1] !== "publish-pr" && tokens[1] !== "update-pr" && tokens[1] !== "validate-scout-plan")) {
+  const validSubcommands: BuiltInPrCommand[] = ["publish-pr", "update-pr", "validate-scout-plan", "preflight-repos"];
+  if (tokens[0] !== "vajra" || !validSubcommands.includes(tokens[1] as BuiltInPrCommand)) {
     return null;
   }
 
@@ -47,7 +49,7 @@ function parseArgs(command: string): { subcommand: BuiltInPrCommand; args: Map<s
   }
 
   return {
-    subcommand: tokens[1],
+    subcommand: tokens[1] as BuiltInPrCommand,
     args,
   };
 }
@@ -231,6 +233,10 @@ export async function executeBuiltInVajraTool(opts: {
 
   if (parsed.subcommand === "validate-scout-plan") {
     return executeScoutPlanValidation(opts.cwd);
+  }
+
+  if (parsed.subcommand === "preflight-repos") {
+    return executePreflightRepos(opts.cwd, opts.commandRunner, opts.signal);
   }
 
   if (!opts.githubConfig) {
