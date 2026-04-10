@@ -55,6 +55,19 @@ Three sections, plus Manual Steps if needed:
 
 **Risks / Follow-ups** (if any): only real caveats. Empty section is fine.
 
+**Related Repos** (if applicable): Check if `.vajra/run/multi-repo-context.json` exists. If it does, include a "## Related Repos" section in the PR body:
+
+```markdown
+## Related Repos
+This PR is part of a multi-repo change for {issue identifier}.
+
+- `owner/other-repo`: {scopeSummary from otherRepos}
+
+**Cross-repo notes**: {crossRepoNotes from context file}
+```
+
+List each repo from `otherRepos` with its `scopeSummary`. Include `crossRepoNotes` if it contains useful coordination context. Omit this section entirely if the context file does not exist.
+
 ### 5. Archive artifacts
 
 Copy stage artifacts to the permanent archive location specified in the prompt. Keep workspace artifacts uncommitted.

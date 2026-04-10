@@ -144,7 +144,7 @@ agents:
       Issue: {{ issue.identifier }} — {{ issue.title }}
       {{ issue.description }}
 
-      Read: .vajra/run/plan.md, .vajra/run/implementation-summary.md, .vajra/run/code-review.md
+      Read: .vajra/run/plan.md, .vajra/run/implementation-summary.md, .vajra/run/code-review.md, .vajra/run/multi-repo-context.json
       Write: .vajra/pr-title.txt, .vajra/run/pr-body.md
       Branch: vajra/{{ issue.identifier | downcase }}
       Target: origin/{{ target_branch }}

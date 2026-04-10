@@ -193,6 +193,7 @@ export interface MultiRepoRunEntry {
   status: "pending" | "running" | "success" | "failure";
   prUrl: string | null;
   error: string | null;
+  implementationSummary?: string | null;
 }
 
 export interface MultiRepoDispatchPlan {

@@ -28,6 +28,12 @@ digraph MultiRepoPipeline {
     command="vajra validate-scout-plan"
   ]
 
+  preflight_repos [
+    type="tool",
+    label="Preflight Repos",
+    command="vajra preflight-repos"
+  ]
+
   plan [
     type="agent",
     label="Plan",
@@ -88,7 +94,8 @@ digraph MultiRepoPipeline {
   review_scout -> validate_scout [on_label="lgtm"]
   review_scout -> scout [on_label="revise"]
   review_scout -> escalate [on_label="escalate"]
-  validate_scout -> plan
+  validate_scout -> preflight_repos
+  preflight_repos -> plan
   plan -> review_plan
   review_plan -> code [on_label="lgtm"]
   review_plan -> plan [on_label="revise"]

@@ -16,6 +16,8 @@ import {
 } from "./types";
 import { VajraEventBus } from "./events";
 import { GitHubClient } from "./github";
+import { updateKnowledgeBase } from "./knowledge-base-updater";
+import { ShellCommandRunner } from "./process";
 import { WorkspaceManager, safeIdentifier } from "./workspace";
 import { log } from "./logger";
 
@@ -303,6 +305,14 @@ export class MultiRepoCoordinator {
         if (result.status === "success") {
           entry.status = "success";
           entry.prUrl = result.prUrl ?? result.pr?.url ?? null;
+          try {
+            entry.implementationSummary = await readFile(
+              path.join(workspace.path, ".vajra", "run", "implementation-summary.md"),
+              "utf8",
+            );
+          } catch {
+            entry.implementationSummary = null;
+          }
           log("multi-repo repo execution succeeded", {
             issue: issue.identifier,
             repository: repoPlan.repository,
@@ -485,9 +495,37 @@ export class MultiRepoCoordinator {
         });
       }
 
+      // Phase 4: Knowledge base auto-update
+      const hasAnySuccess = multiRepoPlan.repoRuns.some((e) => e.status === "success");
+      if (this.githubConfig && hasAnySuccess) {
+        try {
+          const kbResult = await updateKnowledgeBase({
+            knowledgeRepo: this.config.knowledgeRepo,
+            knowledgeBranch: this.config.knowledgeBranch,
+            issueIdentifier: issue.identifier,
+            repoRuns: multiRepoPlan.repoRuns,
+            githubConfig: this.githubConfig,
+            commandRunner: new ShellCommandRunner(),
+            workspaceRoot: "/tmp",
+          });
+          if (kbResult.prUrl) {
+            log("multi-repo knowledge base update PR created", {
+              issue: issue.identifier,
+              prUrl: kbResult.prUrl,
+              updatedFiles: kbResult.updatedFiles,
+            });
+          }
+        } catch (error) {
+          // Non-fatal: KB update failure should not fail the overall run
+          log("multi-repo knowledge base update failed", {
+            issue: issue.identifier,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
       // Determine overall result
       const allSuccess = multiRepoPlan.repoRuns.every((e) => e.status === "success");
-      const hasAnySuccess = multiRepoPlan.repoRuns.some((e) => e.status === "success");
 
       const completedNodes = multiRepoPlan.repoRuns
         .filter((e) => e.status === "success")

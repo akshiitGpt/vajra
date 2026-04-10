@@ -13,6 +13,42 @@ These skills are examples — customize them for your team. The default philosop
 
 Vajra runs as an automated agent. If the issue requires manual steps (like database migrations), describe them in the plan so a human engineer can handle them separately.
 
+## Multi-Repo Context
+
+When running as part of a multi-repo pipeline, the file `.vajra/run/multi-repo-context.json` will exist in the workspace. Read it **before** investigating the codebase.
+
+### Structure
+
+```json
+{
+  "crossRepoNotes": "Shared context from the scout — API contracts, coordination notes",
+  "thisRepo": {
+    "repository": "owner/repo",
+    "scopeSummary": "What changes are expected in this repo",
+    "reasoning": "Why the scout determined this repo needs changes",
+    "dependencies": ["owner/other-repo"],
+    "priority": 1
+  },
+  "otherRepos": [
+    {
+      "repository": "owner/other-repo",
+      "scopeSummary": "What that repo is changing",
+      "dependencies": []
+    }
+  ]
+}
+```
+
+### How to use it
+
+- **`thisRepo.scopeSummary`** is your starting scope. Refine it based on codebase investigation, but do not expand beyond it without concrete evidence of a gap the scout missed.
+- **`thisRepo.reasoning`** explains why this repo is included. Ground your plan in this reasoning.
+- **`thisRepo.dependencies`** lists repos that must change before or alongside this one. If this repo produces an API consumed by a dependency, note the contract in your plan.
+- **`crossRepoNotes`** contains coordination context shared across all repos. Read it for API contract details, shared types, or ordering constraints.
+- **`otherRepos`** shows what other repos are changing simultaneously. Use this to avoid conflicting assumptions about shared interfaces.
+
+When multi-repo context exists, include a `# Multi-Repo Context` section in your plan output summarizing: which repos are being coordinated, this repo's scope, and any cross-repo contracts or assumptions.
+
 ## Mindset
 
 Planning is investigation, not imagination. You are reading real code and mapping the minimum path from current state to desired state. Every line of your plan must be grounded in something you actually read in the codebase.
@@ -77,6 +113,9 @@ Specific test files and cases to add or modify.
 
 # Risks
 Concrete failure scenarios.
+
+# Multi-Repo Context (if applicable)
+Which repos are being coordinated, this repo's scope, cross-repo contracts.
 
 # Acceptance Checks
 Commands to run and expected results.
