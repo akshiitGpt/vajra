@@ -1,7 +1,7 @@
 ---
 title: "agent-platform-v2 Repo"
 category: repos
-tags: [repo, agent-platform, python, poetry, langgraph, redis-streams]
+tags: [repo, agent-platform, python, poetry, langgraph, kafka]
 owner: "@backend"
 last_updated: "2026-04-02"
 source: repo
@@ -16,7 +16,7 @@ GitHub: `github.com/ruh-ai/agent-platform-v2`
 
 ```
 app/
-  main.py                        # Entry point: init services, start Redis listeners
+  main.py                        # Entry point: init services, start Kafka consumer + Redis listeners
   agent/
     run_agent.py                 # Main agent execution orchestrator (async generator)
     model.py                     # Chat model factory (provider selection)
@@ -27,9 +27,11 @@ app/
     tools/                       # 21+ tools (memory, web, files, image/audio/video, sandbox, browser, scheduler)
     system_prompts/              # Global + custom prompts, 20+ usage instruction files
   services/
-    redis_streams.py             # Redis Streams producer/consumer with retry + DLQ
-    redis_listener.py            # Main event listener (routes requests to agent/workflow)
-    kafka_producer.py            # Kafka event publishing
+    kafka_chat_consumer.py       # Kafka consumer for agent_chat_requests topic
+    kafka_chat_producer.py       # Kafka producer for agent_chat_responses topic
+    redis_streams.py             # Redis Streams producer/consumer with retry + DLQ (non-chat)
+    redis_listener.py            # Event listener for non-chat Redis Streams (workflow, memory, stop)
+    kafka_producer.py            # Kafka event publishing (analytics)
     agent_fetch.py               # Fetches agent config from API Gateway
     ruh_agent_checkpointer.py    # Agent state checkpointing
     db_client.py                 # MongoDB + PostgreSQL initialization
@@ -54,9 +56,9 @@ scripts/                         # Utility scripts (test, cleanup, migration)
 
 ## Entry Point
 
-`app/main.py` — initializes all service clients, sets up telemetry, then starts two concurrent async listeners:
-1. `listen_event_from_redis_pubsub()` — Main Redis Streams consumer
-2. `listen_stop_events_from_redis_streams()` — Stop signal listener
+`app/main.py` — initializes all service clients, sets up telemetry, then starts concurrent async listeners:
+1. `kafka_chat_consumer.start()` — Kafka consumer for chat requests
+2. `listen_stop_events_from_redis_streams()` — Stop signal listener (Redis)
 
 ## Local Development
 
@@ -75,8 +77,10 @@ poetry run python -m app.main
 |------|---------|
 | `app/main.py` | Bootstrap and startup |
 | `app/agent/run_agent.py` | Core agent execution logic |
-| `app/services/redis_listener.py` | Request routing |
-| `app/services/redis_streams.py` | Stream producer/consumer |
+| `app/services/kafka_chat_consumer.py` | Kafka consumer for chat requests |
+| `app/services/kafka_chat_producer.py` | Kafka producer for chat responses |
+| `app/services/redis_listener.py` | Non-chat request routing (workflow, memory, stop) |
+| `app/services/redis_streams.py` | Redis Streams producer/consumer (non-chat) |
 | `app/shared/config/base.py` | All configuration / env vars |
 | `app/shared/config/constants.py` | Enums and constants |
 

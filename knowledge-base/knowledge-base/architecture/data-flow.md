@@ -3,7 +3,7 @@ title: "Data Flow"
 category: architecture
 tags: [architecture, data-flow, lifecycle]
 owner: "@team-lead"
-last_updated: "2026-03-31"
+last_updated: "2026-04-09"
 source: manual
 ---
 
@@ -18,11 +18,12 @@ The primary data path through the platform:
    │
 2. API Gateway receives HTTP request
    │
-3. API Gateway publishes to Redis Stream
-   │  Stream: {env}:agent:chat:requests
+3. API Gateway publishes to Kafka topic
+   │  Topic: agent_chat_requests
+   │  Key: conversation_id
    │  Payload: { org_id, agent_id, conversation_id, request_id, message, ... }
    │
-4. Agent Platform consumes from Redis Stream (consumer group)
+4. Agent Platform consumes from Kafka topic (consumer group: agent-processors)
    │
 5. Agent Platform fetches agent config from API Gateway
    │  GET {API_GATEWAY_URL}/agents/{agent_id}
@@ -39,11 +40,12 @@ The primary data path through the platform:
    │  ├── Calls LLM via AI Gateway
    │  └── Streams response tokens
    │
-7. Agent Platform publishes response events to Redis Stream
-   │  Stream: {env}:agent:chat:responses:{conversation_id}-{request_id}
+7. Agent Platform publishes response events to Kafka topic
+   │  Topic: agent_chat_responses
+   │  Key: request_id
    │  Events: STREAM_START → MESSAGE → TOOL_START → ... → STREAM_END
    │
-8. API Gateway consumes response stream
+8. API Gateway consumes response topic (per-instance consumer, routes by request_id)
    │
 9. API Gateway streams SSE to client
    │
@@ -60,7 +62,7 @@ The primary data path through the platform:
 | Conversation checkpoints | MongoDB or PostgreSQL | Indefinite | Read/write per agent turn |
 | Long-term memory | Qdrant (vectors) | Indefinite | Semantic search per request |
 | Transient agent state | Redis (key-value) | 30-min TTL | Read/write during agent execution |
-| Request/response streams | Redis Streams | Consumer-group acknowledged | Produce/consume per request |
+| Chat request/response streams | Kafka | At-least-once, partitioned by key | Produce/consume per request |
 | Generated files | Google Cloud Storage | Indefinite | Write during agent execution |
 | Analytics events | Kafka → downstream | Configurable | Append-only, consumed by analytics |
 
@@ -75,7 +77,8 @@ The primary data path through the platform:
 
 Data is isolated by `organisation_id` and `agent_id`:
 
-- Redis Streams: Shared streams, but each message carries `org_id` and `agent_id`
+- Kafka topics (chat): shared topics, each message carries `org_id` and `agent_id`
+- Redis Streams (non-chat): shared streams, each message carries `org_id` and `agent_id`
 - MongoDB: Checkpoints keyed by `thread_id` (includes org/agent context)
 - Qdrant: Collections filtered by `organisation_id`, `agent_id`, `user_id` metadata
 - Kafka: Events carry `org_id` for downstream filtering
@@ -83,6 +86,7 @@ Data is isolated by `organisation_id` and `agent_id`:
 ## See Also
 
 - [architecture/communication.md](communication.md) — Protocol details
-- [data/events/redis-streams.md](../data/events/redis-streams.md) — Stream event schemas
+- [data/events/kafka-events.md](../data/events/kafka-events.md) — Chat event schemas (Kafka)
+- [data/events/redis-streams.md](../data/events/redis-streams.md) — Non-chat stream event schemas
 - [data/schemas/conversations.md](../data/schemas/conversations.md) — Checkpoint schema
 - [workflows/agent-chat-flow.md](../workflows/agent-chat-flow.md) — Step-by-step walkthrough

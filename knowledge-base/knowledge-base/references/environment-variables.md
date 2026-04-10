@@ -3,7 +3,7 @@ title: "Environment Variables"
 category: references
 tags: [reference, env-vars, configuration]
 owner: "@devops"
-last_updated: "2026-04-02"
+last_updated: "2026-04-09"
 source: repo
 ---
 
@@ -58,6 +58,10 @@ source: repo
 | `QDRANT_API_KEY` | Conditional | Qdrant auth key |
 | `QDRANT_COLLECTION_NAME` | No | Vector collection name |
 | `KAFKA_BOOTSTRAP_SERVERS` | Yes | Kafka broker addresses |
+| `KAFKA_CHAT_REQUESTS_TOPIC` | No | Chat requests topic (default: `agent_chat_requests`) |
+| `KAFKA_CHAT_RESPONSES_TOPIC` | No | Chat responses topic (default: `agent_chat_responses`) |
+| `KAFKA_CHAT_DLQ_TOPIC` | No | Chat DLQ topic (default: `agent_chat_requests_dlq`) |
+| `KAFKA_CONSUMER_GROUP_ID` | No | Chat consumer group (default: `agent-processors`) |
 | `KAFKA_AGENT_ACTIVITY_EVENTS_TOPIC` | No | Activity events topic name |
 
 ### Service URLs
@@ -123,6 +127,14 @@ source: repo
 | `REDIS_USE_TLS` | No | Enable TLS |
 | `CACHE_ENABLED` | No | Enable Redis caching |
 | `CACHE_TTL_MESSAGES` / `CACHE_TTL_CONVERSATION` | No | Cache TTLs |
+
+### Kafka
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `KAFKA_BOOTSTRAP_SERVERS` | Yes | Kafka broker addresses |
+| `KAFKA_CHAT_REQUESTS_TOPIC` | No | Chat requests topic (default: `agent_chat_requests`) |
+| `KAFKA_CHAT_RESPONSES_TOPIC` | No | Chat responses topic (default: `agent_chat_responses`) |
 
 ### Upstream Services
 

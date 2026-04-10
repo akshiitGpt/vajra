@@ -1,7 +1,7 @@
 ---
 title: "agent-gateway Repo"
 category: repos
-tags: [repo, agent-gateway, python, fastapi, grpc, redis-streams, sse]
+tags: [repo, agent-gateway, python, fastapi, grpc, kafka, sse]
 owner: "@backend"
 last_updated: "2026-04-02"
 source: repo
@@ -12,7 +12,7 @@ repo_url: "https://github.com/ruh-ai/agent-gateway"
 
 GitHub: `github.com/ruh-ai/agent-gateway`
 
-Python 3.13 API Gateway built with FastAPI + Uvicorn. Routes HTTP requests to backend microservices via gRPC (communication-service, user-service, agent-service). Handles real-time chat streaming via Redis Streams + SSE. Publishes events to Kafka.
+Python 3.13 API Gateway built with FastAPI + Uvicorn. Routes HTTP requests to backend microservices via gRPC (communication-service, user-service, agent-service). Handles real-time chat streaming via Kafka + SSE. Publishes events to Kafka.
 
 ## Directory Structure
 
@@ -36,7 +36,8 @@ agent-gateway/
 │   │   ├── logging.py                  # structlog setup
 │   │   └── telemetry.py               # OpenTelemetry/SigNoz
 │   ├── services/
-│   │   ├── chat_stream_service.py       # Core SSE streaming (Redis Streams pub/sub)
+│   │   ├── chat_stream_service.py       # Core SSE streaming (Kafka consumer)
+│   │   ├── kafka_response_consumer.py   # Background Kafka consumer for agent_chat_responses
 │   │   ├── communication_service.py     # gRPC client for communication-service
 │   │   ├── ai_services_service.py       # HTTP client for AI Gateway
 │   │   ├── webhook_service.py           # Telegram/SMS webhook processing
@@ -82,7 +83,8 @@ poetry run uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 |------|---------|
 | `app/main.py` | FastAPI app bootstrap, middleware, lifecycle |
 | `app/api/routers/agent_routes.py` | Chat streaming and agent control endpoints |
-| `app/services/chat_stream_service.py` | Core SSE streaming via Redis Streams |
+| `app/services/chat_stream_service.py` | Core SSE streaming via Kafka |
+| `app/services/kafka_response_consumer.py` | Background Kafka consumer for chat responses |
 | `app/services/communication_service.py` | gRPC client for communication-service |
 | `app/core/config.py` | All configuration / env vars |
 | `app/core/auth_guard.py` | JWT + session authentication |
