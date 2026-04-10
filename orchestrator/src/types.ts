@@ -170,6 +170,7 @@ export interface MultiRepoConfig {
 
 export interface ScoutRepoPlan {
   repository: string;
+  cloneUrl?: string;
   baseBranch: string;
   targetBranch: string;
   mergeStrategy: "pr-only" | "auto-merge";

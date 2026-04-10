@@ -49,7 +49,7 @@ function validateRepoPlan(entry: unknown, index: number): ScoutRepoPlan {
     throw new Error(`repos[${index}].priority must be a finite number`);
   }
 
-  return {
+  const result: ScoutRepoPlan = {
     repository: record.repository,
     baseBranch: record.baseBranch,
     targetBranch: record.targetBranch,
@@ -59,6 +59,12 @@ function validateRepoPlan(entry: unknown, index: number): ScoutRepoPlan {
     dependencies: record.dependencies,
     priority: record.priority,
   };
+
+  if (typeof record.cloneUrl === "string" && record.cloneUrl) {
+    result.cloneUrl = record.cloneUrl;
+  }
+
+  return result;
 }
 
 function validateScoutPlan(raw: unknown): ScoutPlanArtifact {

@@ -50,8 +50,12 @@ workflows:
     dot_file: pipelines/scout.dot
     success_state: In Progress
     inspect_pr: false
+  multi-repo:
+    dot_file: pipelines/multi-repo.dot
+    success_state: Code Review
+    inspect_pr: true
 workflow_routing:
-  default_workflow: default
+  default_workflow: multi-repo
   by_label: {}
 backends:
   claude:
@@ -67,6 +71,10 @@ agents:
 
       Issue: {{ issue.identifier }} — {{ issue.title }}
       {{ issue.description }}
+
+      If `.vajra/run/multi-repo-context.json` exists, read it first.
+      It contains scout findings: which repos are affected, your repo's scope, cross-repo notes, and related repos.
+      Incorporate the scout's scopeSummary and reasoning into your plan.
 
       If `.vajra/run/plan.md` already exists, revise it instead of starting over.
       If `.vajra/run/plan-review.md` exists, address that review directly.
@@ -151,9 +159,10 @@ agents:
       Issue: {{ issue.identifier }} — {{ issue.title }}
       {{ issue.description }}
 
-      Read: all services/*/SERVICE.md files in this workspace
+      Read: repos/*.md files for repository URLs (repo_url in frontmatter)
+      Read: services/*/overview.md files for service descriptions and dependencies
       Investigate: clone candidate repos temporarily and check relevant code
-      Write: .vajra/run/scout-plan.json
+      Write: .vajra/run/scout-plan.json (include cloneUrl from repos/*.md frontmatter)
     reasoning_effort: high
     skills:
       - vajra-scout
@@ -173,9 +182,19 @@ agents:
     reasoning_effort: high
     skills:
       - vajra-scout-review
+github:
+  repository: akshiitGpt/vajra
+  api_key: $GITHUB_TOKEN
+  webhook_secret: vajra-webhook-placeholder
+  revision_label: vajra-revision
+  revision_command: /vajra revise
+  revision_state: In Progress
+  merged_state: Done on Prod
+  closed_state: null
 multi_repo:
   knowledge_repo: ruh-ai/ruh-knowledge-base
   knowledge_branch: master
+  workflow: multi-repo
   scout_workflow: scout
   execution_workflow: default
   max_parallel_repos: 3
@@ -197,4 +216,12 @@ multi_repo:
       url: https://github.com/ruh-ai/ai-gateway
       default_branch: main
       stack: Python, FastAPI, OpenRouter, Kafka
+    file-conversion:
+      url: https://github.com/ruh-ai/file-conversion
+      default_branch: main
+      stack: Python, FastAPI, file processing
+    ruh-super-admin-fe:
+      url: https://github.com/ruh-ai/ruh-super-admin-fe
+      default_branch: main
+      stack: TypeScript, React, Next.js
 ---
