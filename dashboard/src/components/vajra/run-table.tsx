@@ -87,7 +87,7 @@ export function RunTable({ runs, loading, onRunClick }: RunTableProps) {
   return (
     <div className="bg-white border border-[var(--d-border-subtle)] overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-[100px_1fr_100px_200px_80px_80px_60px] gap-4 px-5 py-2.5 border-b border-[var(--d-border-subtle)] bg-[var(--d-bg-subtle)]">
+      <div className="grid grid-cols-[100px_1fr_100px_minmax(120px,1.5fr)_80px_80px_60px] gap-4 px-5 py-2.5 border-b border-[var(--d-border-subtle)] bg-[var(--d-bg-subtle)]">
         <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--d-text-tertiary)]">Issue</span>
         <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--d-text-tertiary)]">Title</span>
         <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--d-text-tertiary)]">Workflow</span>
@@ -103,7 +103,7 @@ export function RunTable({ runs, loading, onRunClick }: RunTableProps) {
           key={run.id}
           onClick={() => onRunClick?.(run)}
           className={cn(
-            "grid grid-cols-[100px_1fr_100px_200px_80px_80px_60px] gap-4 px-5 py-3 items-center",
+            "grid grid-cols-[100px_1fr_100px_minmax(120px,1.5fr)_80px_80px_60px] gap-4 px-5 py-3 items-center",
             "border-b border-[var(--d-border-subtle)] last:border-0",
             "transition-colors duration-100",
             onRunClick && "cursor-pointer hover:bg-[var(--d-bg-hover)]",
@@ -139,7 +139,9 @@ export function RunTable({ runs, loading, onRunClick }: RunTableProps) {
           </span>
 
           {/* Pipeline dots */}
-          <PipelineDots stages={run.stages} />
+          <div className="overflow-hidden min-w-0">
+            <PipelineDots stages={run.stages} />
+          </div>
 
           {/* Duration */}
           <Duration

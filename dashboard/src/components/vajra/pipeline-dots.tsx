@@ -98,7 +98,7 @@ export function PipelineDots({ stages, className }: PipelineDotsProps) {
           : currentLabel.toLowerCase();
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div className={cn("flex items-center gap-1 whitespace-nowrap", className)}>
       <div className="flex items-center gap-[5px]">
         {stages.map((stage) => (
           <StageDot key={stage.id} status={stage.status} />
@@ -107,7 +107,7 @@ export function PipelineDots({ stages, className }: PipelineDotsProps) {
       {statusLabel && (
         <span
           className={cn(
-            "ml-2 text-[11px] font-medium tracking-wide",
+            "ml-2 text-[11px] font-medium tracking-wide truncate",
             runStatus === "failure"
               ? "text-[var(--d-error)]"
               : runStatus === "cancelled"
