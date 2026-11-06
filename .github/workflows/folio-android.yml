@@ -7,9 +7,12 @@ on:
       - ".github/workflows/folio-android.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: folio-android-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -72,6 +75,19 @@ jobs:
         with:
           name: Folio-test-results
           path: results
+      - name: Publish results to the branch
+        if: always() && github.event_name == 'push'
+        run: |
+          R=folio-android/test-results
+          rm -rf $R && mkdir -p $R
+          cp -r results/screens $R/ || true
+          cp results/summary.txt results/demo.log results/crash.txt $R/ 2>/dev/null || true
+          cp results/folio_demo_720p.mp4 $R/ 2>/dev/null || true
+          cp apk/Folio.apk $R/Folio.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $R
+          git commit -q -m "Folio CI: test results, screenshots, video and APK [skip ci]" && git push origin HEAD:${{ github.ref_name }} || echo "nothing to push"
       - name: Fail if any assertion failed
         run: |
           cat results/summary.txt
