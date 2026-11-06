@@ -1,0 +1,79 @@
+name: Folio Android
+
+on:
+  push:
+    paths:
+      - "folio-android/**"
+      - ".github/workflows/folio-android.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: folio-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: folio-android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests
+        run: ./gradlew --no-daemon testReleaseUnitTest
+      - name: Build optimized APK
+        run: ./gradlew --no-daemon assembleRelease
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk Folio.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Folio-apk
+          path: folio-android/Folio.apk
+
+  emulator-demo:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Folio-apk
+          path: apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+      - name: Run automated demo on a tablet emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_tablet
+          ram-size: 4096M
+          disk-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: bash folio-android/ci/run-demo.sh apk/Folio.apk results
+      - name: Make video
+        if: always()
+        run: bash folio-android/ci/make-video.sh results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Folio-test-results
+          path: results
+      - name: Fail if any assertion failed
+        run: |
+          cat results/summary.txt
+          ! grep -q "ASSERT FAIL" results/summary.txt
+          grep -q "DEMO DONE" results/summary.txt
