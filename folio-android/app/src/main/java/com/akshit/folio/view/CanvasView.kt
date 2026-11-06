@@ -954,7 +954,8 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         avgP /= s.n; avgT /= s.n
         val shapeBrush = brush.copy().apply { taperStart = 0f; taperEnd = 0f; smoothing = 0f }
         val ns = Stroke(shapeBrush, s.color, s.width, s.ox, s.oy)
-        val sharp = res.kind != ShapeRecognizer.Kind.CIRCLE && res.kind != ShapeRecognizer.Kind.ELLIPSE && res.kind != ShapeRecognizer.Kind.ARC
+        val sharp = res.kind != ShapeRecognizer.Kind.CIRCLE && res.kind != ShapeRecognizer.Kind.ELLIPSE && res.kind != ShapeRecognizer.Kind.ARC &&
+            res.kind != ShapeRecognizer.Kind.LINE // a line stays 2 points so its end can rubber-band
         var tt = 0f
         for (i in res.xs.indices) {
             if (sharp && i > 0) {
