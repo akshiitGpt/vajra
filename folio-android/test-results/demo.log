@@ -20,10 +20,10 @@ SHOT:11_bg_hex
 SHOT:12_bg_perspective_2pt
 SHOT:13_bg_iso_dots_night
 STEP Infinite zoom · pinch · rotate · tap gestures
-ASSERT FAIL zoom.deepIn scale=117.7469101139544
-SHOT:14_zoomed_in_1000x
-SHOT:15_detail_drawn_at_1000x
-ASSERT PASS zoom.backOut scale=0.15142933449178556
+ASSERT PASS zoom.deepIn scale=1277.6864201979167
+SHOT:14_zoomed_in_deep
+SHOT:15_detail_drawn_deep_zoom
+ASSERT PASS zoom.backOut scale=0.11465393671751639
 SHOT:16_zoomed_back_out
 ASSERT PASS gesture.rotate rot=39
 SHOT:17_rotated_canvas
@@ -62,4 +62,4 @@ ASSERT PASS layers.added layers=2
 SHOT:25_layers_panel
 STEP A little sketch
 SHOT:26_sketch
-DEMO DONE pass=22 fail=1
+DEMO DONE pass=23 fail=0

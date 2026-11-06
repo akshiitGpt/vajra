@@ -2,8 +2,8 @@ Android 14
 DEMO START all size=1800.0x1125.0 density=1.5
 ASSERT PASS brushes.strokeCount got=13 expected=13
 ASSERT PASS color.applied color=#ff1e88e5
-ASSERT FAIL zoom.deepIn scale=117.7469101139544
-ASSERT PASS zoom.backOut scale=0.15142933449178556
+ASSERT PASS zoom.deepIn scale=1277.6864201979167
+ASSERT PASS zoom.backOut scale=0.11465393671751639
 ASSERT PASS gesture.rotate rot=39
 ASSERT PASS gesture.doubleTapReset rot=0 scale=1.0
 ASSERT PASS gesture.twoFingerTapUndo before=2 after=1
@@ -23,5 +23,5 @@ ASSERT PASS eraser.slices strokes=6
 ASSERT PASS lasso.selects selected=3
 ASSERT PASS eyedropper.picksRed picked=#ffee9d98
 ASSERT PASS layers.added layers=2
-DEMO DONE pass=22 fail=1
-PASS: 22  FAIL: 1
+DEMO DONE pass=23 fail=0
+PASS: 23  FAIL: 0
