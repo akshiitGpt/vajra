@@ -103,8 +103,8 @@ object StrokeRenderer {
             }
             else -> {
                 p.shader = RadialGradient(r, r, r,
-                    intArrayOf(Color.argb(90, 255, 255, 255), Color.argb(120, 255, 255, 255), Color.argb(255, 255, 255, 255), Color.argb(0, 255, 255, 255)),
-                    floatArrayOf(0f, 0.7f, 0.9f, 1f), Shader.TileMode.CLAMP)
+                    intArrayOf(Color.argb(150, 255, 255, 255), Color.argb(165, 255, 255, 255), Color.argb(200, 255, 255, 255), Color.argb(0, 255, 255, 255)),
+                    floatArrayOf(0f, 0.6f, 0.82f, 1f), Shader.TileMode.CLAMP)
                 c.drawCircle(r, r, r, p)
             }
         }
@@ -181,14 +181,16 @@ object StrokeRenderer {
         if (n == 1) { emit(s.x(0), s.y(0), s.p(0), s.tilt(0), 0f, total / 2f, 0f); return }
 
         val st = step * stepScale
+        var vs = -1f
         for (i in 0 until n - 1) {
             val x0 = s.x(max(i - 1, 0)); val y0 = s.y(max(i - 1, 0))
             val x1 = s.x(i); val y1 = s.y(i)
             val x2 = s.x(i + 1); val y2 = s.y(i + 1)
             val x3 = s.x(min(i + 2, n - 1)); val y3 = s.y(min(i + 2, n - 1))
             val seg = hypot(x2 - x1, y2 - y1)
-            val dt = max(s.t(i + 1) - s.t(i), 1f)
-            val vel = seg / dt
+            val dt = max(s.t(i + 1) - s.t(i), 4f)
+            vs = if (vs < 0f) seg / dt else vs * 0.8f + (seg / dt) * 0.2f
+            val vel = vs
             val dir = atan2(y2 - y1, x2 - x1)
             val k = max(1, ceil(seg / st).toInt())
             for (j in 0 until k) {
@@ -251,50 +253,104 @@ object StrokeRenderer {
         s.bounds.set(bb)
     }
 
+    // filtered spine + per-segment tangent points
+    private var fx = FloatArray(1024); private var fy = FloatArray(1024); private var fr = FloatArray(1024)
+    private var sux = FloatArray(1024); private var suy = FloatArray(1024)
+    private var a0x = FloatArray(1024); private var a0y = FloatArray(1024); private var a1x = FloatArray(1024); private var a1y = FloatArray(1024)
+    private var b0x = FloatArray(1024); private var b0y = FloatArray(1024); private var b1x = FloatArray(1024); private var b1y = FloatArray(1024)
+    private val oval = RectF()
+
+    private fun ensureSeg(n: Int) {
+        if (n <= fx.size) return
+        val s = max(n, fx.size * 2)
+        fx = fx.copyOf(s); fy = fy.copyOf(s); fr = fr.copyOf(s); sux = sux.copyOf(s); suy = suy.copyOf(s)
+        a0x = a0x.copyOf(s); a0y = a0y.copyOf(s); a1x = a1x.copyOf(s); a1y = a1y.copyOf(s)
+        b0x = b0x.copyOf(s); b0y = b0y.copyOf(s); b1x = b1x.copyOf(s); b1y = b1y.copyOf(s)
+    }
+
+    /**
+     * Builds the stroke as ONE closed contour (like Skia's own stroker): side A forward with
+     * round outer joins, round end cap, side B backward, round start cap. Inner joins go through
+     * the spine point so the non-zero fill stays positive. A single contour has no internal
+     * edges, so translucent brushes render without seams or hatching.
+     */
     private fun unionOfDiscs(path: Path) {
-        if (rc == 1) { path.addCircle(rx[0], ry[0], rr[0], Path.Direction.CW); return }
-        path.addCircle(rx[0], ry[0], rr[0], Path.Direction.CW)
-        path.addCircle(rx[rc - 1], ry[rc - 1], rr[rc - 1], Path.Direction.CW)
-        var prevDx = 0f; var prevDy = 0f; var hasPrev = false
-        for (i in 0 until rc - 1) {
-            val x0 = rx[i]; val y0 = ry[i]; val r0 = rr[i]
-            val x1 = rx[i + 1]; val y1 = ry[i + 1]; val r1 = rr[i + 1]
-            val dx = x1 - x0; val dy = y1 - y0
-            val len = hypot(dx, dy)
-            if (len < 1e-6f) continue
-            val ux = dx / len; val uy = dy / len
-            if (len <= abs(r1 - r0)) {
-                // one disc contains the other
-                if (r1 > r0) path.addCircle(x1, y1, r1, Path.Direction.CW)
-                hasPrev = false
-                continue
+        ensureSeg(rc + 2)
+        // 1) drop dabs fully contained in their neighbour (and duplicates)
+        var m = 0
+        for (i in 0 until rc) {
+            val x = rx[i]; val y = ry[i]; val r = rr[i]
+            var skip = false
+            while (m > 0) {
+                val d = hypot(x - fx[m - 1], y - fy[m - 1])
+                if (d <= abs(r - fr[m - 1]) + 1e-5f * max(r, fr[m - 1]) || d < 1e-6f) {
+                    if (r > fr[m - 1]) { m--; continue } else { skip = true }
+                }
+                break
             }
-            // Sharp joint -> add a disc to fill the wedge on the outer side
-            if (hasPrev) {
-                val cosA = prevDx * ux + prevDy * uy
-                if (cosA < 0.955f) path.addCircle(x0, y0, r0, Path.Direction.CW)
-            }
-            prevDx = ux; prevDy = uy; hasPrev = true
-            // External tangent: outward normal u satisfies u.d = (r0-r1)/len
-            val k = (r0 - r1) / len
-            val m = sqrt(max(0f, 1f - k * k))
-            // normals rotated from direction
-            val nx = -uy; val ny = ux
-            val ax = ux * k + nx * m; val ay = uy * k + ny * m   // side A
-            val bx = ux * k - nx * m; val by = uy * k - ny * m   // side B
-            val p0x = x0 + ax * r0; val p0y = y0 + ay * r0
-            val p1x = x1 + ax * r1; val p1y = y1 + ay * r1
-            val p2x = x1 + bx * r1; val p2y = y1 + by * r1
-            val p3x = x0 + bx * r0; val p3y = y0 + by * r0
-            // Ensure clockwise (positive shoelace in y-down coords)
-            val area = (p0x * p1y - p1x * p0y) + (p1x * p2y - p2x * p1y) + (p2x * p3y - p3x * p2y) + (p3x * p0y - p0x * p3y)
-            if (area >= 0f) {
-                path.moveTo(p0x, p0y); path.lineTo(p1x, p1y); path.lineTo(p2x, p2y); path.lineTo(p3x, p3y)
-            } else {
-                path.moveTo(p0x, p0y); path.lineTo(p3x, p3y); path.lineTo(p2x, p2y); path.lineTo(p1x, p1y)
-            }
-            path.close()
+            if (!skip) { fx[m] = x; fy[m] = y; fr[m] = r; m++ }
         }
+        if (m == 0) return
+        if (m == 1) { path.addCircle(fx[0], fy[0], fr[0], Path.Direction.CW); return }
+        // 2) external tangents for every segment
+        for (i in 0 until m - 1) {
+            val dx = fx[i + 1] - fx[i]; val dy = fy[i + 1] - fy[i]
+            val len = hypot(dx, dy)
+            val ux = dx / len; val uy = dy / len
+            sux[i] = ux; suy[i] = uy
+            val k = ((fr[i] - fr[i + 1]) / len).coerceIn(-0.999f, 0.999f)
+            val mm = sqrt(1f - k * k)
+            val nx = -uy; val ny = ux
+            val ax = ux * k + nx * mm; val ay = uy * k + ny * mm
+            val bx = ux * k - nx * mm; val by = uy * k - ny * mm
+            a0x[i] = fx[i] + ax * fr[i]; a0y[i] = fy[i] + ay * fr[i]
+            a1x[i] = fx[i + 1] + ax * fr[i + 1]; a1y[i] = fy[i + 1] + ay * fr[i + 1]
+            b0x[i] = fx[i] + bx * fr[i]; b0y[i] = fy[i] + by * fr[i]
+            b1x[i] = fx[i + 1] + bx * fr[i + 1]; b1y[i] = fy[i + 1] + by * fr[i + 1]
+        }
+        val last = m - 2
+        // 3) side A forward
+        path.moveTo(a0x[0], a0y[0])
+        for (i in 0..last) {
+            path.lineTo(a1x[i], a1y[i])
+            if (i < last) {
+                val j = i + 1
+                val cross = sux[i] * suy[j] - suy[i] * sux[j]
+                if (cross <= 0f) arc(path, fx[j], fy[j], fr[j], a1x[i], a1y[i], a0x[j], a0y[j], Float.NaN, 0f)
+                else { path.lineTo(fx[j], fy[j]); path.lineTo(a0x[j], a0y[j]) }
+            }
+        }
+        // 4) end cap through the forward direction
+        arc(path, fx[m - 1], fy[m - 1], fr[m - 1], a1x[last], a1y[last], b1x[last], b1y[last], sux[last], suy[last])
+        // 5) side B backward
+        for (i in last downTo 0) {
+            path.lineTo(b0x[i], b0y[i])
+            if (i > 0) {
+                val cross = sux[i - 1] * suy[i] - suy[i - 1] * sux[i]
+                if (cross > 0f) arc(path, fx[i], fy[i], fr[i], b0x[i], b0y[i], b1x[i - 1], b1y[i - 1], Float.NaN, 0f)
+                else { path.lineTo(fx[i], fy[i]); path.lineTo(b1x[i - 1], b1y[i - 1]) }
+            }
+        }
+        // 6) start cap through the backward direction
+        arc(path, fx[0], fy[0], fr[0], b0x[0], b0y[0], a0x[0], a0y[0], -sux[0], -suy[0])
+        path.close()
+    }
+
+    /** Arc on circle (cx,cy,r) from one point to another; short way, or through direction (vx,vy). */
+    private fun arc(path: Path, cx: Float, cy: Float, r: Float, fromX: Float, fromY: Float, toX: Float, toY: Float, vx: Float, vy: Float) {
+        val a0 = atan2(fromY - cy, fromX - cx)
+        val a1 = atan2(toY - cy, toX - cx)
+        var sweep = a1 - a0
+        val pi = Math.PI.toFloat()
+        while (sweep > pi) sweep -= 2 * pi
+        while (sweep <= -pi) sweep += 2 * pi
+        if (!vx.isNaN()) {
+            val mid = a0 + sweep / 2
+            if (cos(mid) * vx + sin(mid) * vy < 0f) sweep = if (sweep > 0) sweep - 2 * pi else sweep + 2 * pi
+        }
+        if (abs(sweep) < 0.02f || r < 1e-6f) { path.lineTo(toX, toY); return }
+        oval.set(cx - r, cy - r, cx + r, cy + r)
+        path.arcTo(oval, Math.toDegrees(a0.toDouble()).toFloat(), Math.toDegrees(sweep.toDouble()).toFloat(), false)
     }
 
     private fun buildFill(s: Stroke) {

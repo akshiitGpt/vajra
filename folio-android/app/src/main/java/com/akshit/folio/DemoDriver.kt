@@ -207,16 +207,16 @@ class DemoDriver(private val a: CanvasActivity) {
         // zoom in 5 times around the centre (4x each = 1024x)
         var s0 = 0.0
         at(50) { s0 = c.cam.scale }
-        repeat(5) { pinch(cx, cy, 60f * d, 240f * d, 0f) }
-        at(200) { check("zoom.deepIn", c.cam.scale > s0 * 200, "scale=${c.cam.scale}") }
-        shot("14_zoomed_in_1000x")
+        repeat(7) { pinch(cx, cy, 60f * d, 240f * d, 0f) }
+        at(200) { check("zoom.deepIn", c.cam.scale > s0 * 500, "scale=${c.cam.scale}") }
+        shot("14_zoomed_in_deep")
         // draw a tiny detail at deep zoom
         at(10) { a.selectSlot(1, openSettingsIfSame = false); a.setColor(0xFFE5534B.toInt()) }
         val det = ArrayList<P>()
         for (j in 0..40) { val an = j / 40.0 * 2 * PI; det.add(P(0, cx + 160f * d + (cos(an) * 60 * d).toFloat(), cy + (sin(an) * 60 * d).toFloat(), pressure = 0.7f)) }
         penPath(det, 8)
-        shot("15_detail_drawn_at_1000x")
-        repeat(5) { pinch(cx, cy, 240f * d, 60f * d, 0f) }
+        shot("15_detail_drawn_deep_zoom")
+        repeat(7) { pinch(cx, cy, 240f * d, 60f * d, 0f) }
         at(200) { check("zoom.backOut", c.cam.scale < s0 * 4, "scale=${c.cam.scale}") }
         shot("16_zoomed_back_out")
         // rotate with two fingers (45deg)

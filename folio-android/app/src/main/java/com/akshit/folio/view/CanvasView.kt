@@ -954,7 +954,16 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         avgP /= s.n; avgT /= s.n
         val shapeBrush = brush.copy().apply { taperStart = 0f; taperEnd = 0f; smoothing = 0f }
         val ns = Stroke(shapeBrush, s.color, s.width, s.ox, s.oy)
-        for (i in res.xs.indices) ns.add(res.xs[i], res.ys[i], avgP, avgT, i.toFloat())
+        val sharp = res.kind != ShapeRecognizer.Kind.CIRCLE && res.kind != ShapeRecognizer.Kind.ELLIPSE && res.kind != ShapeRecognizer.Kind.ARC
+        var tt = 0f
+        for (i in res.xs.indices) {
+            if (sharp && i > 0) {
+                // straight edges: add collinear points so the spline keeps corners crisp
+                val px = res.xs[i - 1]; val py = res.ys[i - 1]
+                for (k in 1 until 24) { val f = k / 24f; ns.add(px + (res.xs[i] - px) * f, py + (res.ys[i] - py) * f, avgP, avgT, tt++) }
+            }
+            ns.add(res.xs[i], res.ys[i], avgP, avgT, tt++)
+        }
         active = ns
         liveBrush = shapeBrush
         shaped = res.kind
