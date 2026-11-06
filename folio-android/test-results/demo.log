@@ -1,0 +1,65 @@
+--------- beginning of main
+DEMO START all size=1800.0x1125.0 density=1.5
+STEP All 13 brush engines · pressure + tilt
+ASSERT PASS brushes.strokeCount got=13 expected=13
+SHOT:01_all_brushes
+STEP Color wheel · sliders · palettes
+SHOT:02_color_wheel
+SHOT:03_color_sliders
+SHOT:04_color_palettes
+ASSERT PASS color.applied color=#ff1e88e5
+STEP Pro brush settings
+SHOT:05_brush_pro_settings
+SHOT:06_brush_pro_settings_more
+SHOT:07_brush_pro_settings_stamps
+STEP Paper & grids
+SHOT:08_background_panel
+SHOT:09_bg_graph
+SHOT:10_bg_isometric
+SHOT:11_bg_hex
+SHOT:12_bg_perspective_2pt
+SHOT:13_bg_iso_dots_night
+STEP Infinite zoom · pinch · rotate · tap gestures
+ASSERT FAIL zoom.deepIn scale=117.7469101139544
+SHOT:14_zoomed_in_1000x
+SHOT:15_detail_drawn_at_1000x
+ASSERT PASS zoom.backOut scale=0.15142933449178556
+SHOT:16_zoomed_back_out
+ASSERT PASS gesture.rotate rot=39
+SHOT:17_rotated_canvas
+ASSERT PASS gesture.doubleTapReset rot=0 scale=1.0
+ASSERT PASS gesture.twoFingerTapUndo before=2 after=1
+ASSERT PASS gesture.threeFingerTapRedo after=2
+ASSERT PASS gesture.fourFingerTapHidesUi 
+SHOT:18_four_finger_tap_hides_ui
+ASSERT PASS gesture.threeFingerScrubUndo before=2 after=0
+ASSERT PASS gesture.threeFingerScrubRedo after=2
+STEP Palm rejection
+ASSERT PASS palm.onlyPenStrokes strokes=2
+ASSERT PASS palm.rejectedContacts rejected=4
+ASSERT PASS palm.noPanFromPalm dx=0.0
+ASSERT PASS palm.fingerPansNotDraws strokes=2 dx=247.5
+SHOT:19_palm_rejection
+SHOT:20_palm_overlay_while_writing
+STEP Draw & hold → perfect shapes
+ASSERT PASS shape.circle got=CIRCLE
+ASSERT PASS shape.rectangle got=RECTANGLE
+ASSERT PASS shape.line got=LINE
+ASSERT PASS shape.triangle got=TRIANGLE
+SHOT:21_perfect_shapes
+STEP Vector eraser slices strokes
+ASSERT PASS eraser.slices strokes=6
+SHOT:22_vector_eraser
+STEP Lasso select · move · scale
+ASSERT PASS lasso.selects selected=3
+SHOT:23_lasso_selection
+SHOT:24_selection_moved
+STEP Long-press = eyedropper
+SHOT:26a_eyedropper_loupe
+ASSERT PASS eyedropper.picksRed picked=#ffee9d98
+STEP Layers
+ASSERT PASS layers.added layers=2
+SHOT:25_layers_panel
+STEP A little sketch
+SHOT:26_sketch
+DEMO DONE pass=22 fail=1
