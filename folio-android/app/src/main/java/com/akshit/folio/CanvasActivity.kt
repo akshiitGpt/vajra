@@ -319,6 +319,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
     // ------------------------------------------------------------------ listener
     override fun onHistoryChanged() {
+        if (!::root.isInitialized) return
         updateUndo()
         handler.removeCallbacks(autosave)
         handler.postDelayed(autosave, prefs.autosaveSec * 1000L)
@@ -367,6 +368,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
     }
 
     override fun onSelectionChanged(count: Int) {
+        if (!::selectionBar.isInitialized) return
         selectionBar.visibility = if (count > 0 && !uiHidden) View.VISIBLE else View.GONE
         if (count > 0) showHint("$count stroke${if (count == 1) "" else "s"} selected · drag to move, handles scale/rotate")
     }
@@ -377,6 +379,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
     // ------------------------------------------------------------------ helpers
     private fun updateUndo() {
+        if (!::undoBtn.isInitialized) return
         undoBtn.enabledLook = canvas.history.canUndo()
         redoBtn.enabledLook = canvas.history.canRedo()
     }
