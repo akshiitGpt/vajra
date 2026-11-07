@@ -35,6 +35,13 @@ import kotlin.math.sin
 /** Floating card with a title bar and scrollable body. */
 open class Panel(ctx: Context, title: String, onClose: () -> Unit) : LinearLayout(ctx) {
     val body: LinearLayout = UI.vbox(ctx, 0f)
+    /** Panels hug their content but never grow past this height. */
+    var maxHeightPx = Int.MAX_VALUE
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val avail = MeasureSpec.getSize(heightMeasureSpec).let { if (it == 0) maxHeightPx else it }
+        super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(minOf(maxHeightPx, avail), MeasureSpec.AT_MOST))
+    }
 
     init {
         orientation = VERTICAL
@@ -47,7 +54,7 @@ open class Panel(ctx: Context, title: String, onClose: () -> Unit) : LinearLayou
         head.addView(IconButton(ctx, "close", 40f).apply { setOnClickListener { onClose() } })
         addView(head)
         body.setPadding(UI.dp(ctx, 14f), 0, UI.dp(ctx, 14f), UI.dp(ctx, 14f))
-        addView(UI.scroll(ctx, body), LayoutParams(UI.MATCH, 0, 1f))
+        addView(UI.scroll(ctx, body), LayoutParams(UI.MATCH, UI.WRAP))
     }
 }
 
@@ -513,7 +520,7 @@ fun panelLayoutParams(ctx: Context, leftSide: Boolean, maxHeightFraction: Float 
     val h = (dm.heightPixels * maxHeightFraction).toInt()
     val atStart = if (nearWheel) leftSide else !leftSide
     return FrameLayout.LayoutParams(w, h, (if (atStart) Gravity.START else Gravity.END) or Gravity.TOP).apply {
-        topMargin = UI.dp(ctx, if (narrow) 170f else 14f)
+        topMargin = UI.dp(ctx, if (narrow) 170f else if (nearWheel) 14f else 78f)
         val side = if (narrow) 12f else if (nearWheel) 214f else 124f
         marginStart = UI.dp(ctx, side); marginEnd = UI.dp(ctx, side)
     }

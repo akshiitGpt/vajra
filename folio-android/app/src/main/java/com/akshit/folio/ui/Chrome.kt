@@ -50,8 +50,9 @@ class SlotView(ctx: Context, icon: String) : View(ctx) {
         c.drawText(sizeText, width / 2f, height - 9 * dp, text)
         dotColor?.let {
             dot.color = it
-            c.drawCircle(width - 11 * dp, 12 * dp, 4.5f * dp, dot)
-            c.drawCircle(width - 11 * dp, 12 * dp, 4.5f * dp, ring)
+            val dx = width / 2f + 16 * dp; val dy = 10 * dp
+            c.drawCircle(dx, dy, 4.5f * dp, dot)
+            c.drawCircle(dx, dy, 4.5f * dp, ring)
         }
     }
 }
@@ -69,7 +70,7 @@ class LayerSidebar(ctx: Context, private val canvas: CanvasView, private val onO
         background = UI.card(ctx)
         elevation = UI.dpf(ctx, 6f)
         setPadding(UI.dp(ctx, 6f), UI.dp(ctx, 8f), UI.dp(ctx, 6f), UI.dp(ctx, 6f))
-        addView(UI.label(ctx, "LAYERS", 10f, UI.SUB, true).apply { gravity = Gravity.CENTER; letterSpacing = 0.1f; setOnClickListener { onOpenPanel() } },
+        addView(UI.label(ctx, "Layers", 11f, UI.SUB, true).apply { gravity = Gravity.CENTER; letterSpacing = 0.1f; setOnClickListener { onOpenPanel() } },
             LayoutParams(UI.MATCH, UI.WRAP))
         addView(ScrollView(ctx).apply { isVerticalScrollBarEnabled = false; addView(list) }, LayoutParams(UI.MATCH, 0, 1f))
         addView(IconButton(ctx, "plus", 40f).apply { setOnClickListener { onAdd() } }, LayoutParams(UI.WRAP, UI.WRAP).apply { gravity = Gravity.CENTER_HORIZONTAL })

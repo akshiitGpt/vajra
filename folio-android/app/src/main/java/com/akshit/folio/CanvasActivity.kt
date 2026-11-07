@@ -270,7 +270,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
                 canvas.history.run(com.akshit.folio.model.LambdaCommand({ d.layers.add(at, l); d.activeLayer = at }, { d.layers.remove(l); d.activeLayer = (at - 1).coerceAtLeast(0) }))
             })
             sidebar = sb
-            sidebarHolder.addView(sb, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP))
+            sidebarHolder.addView(sb, FrameLayout.LayoutParams(UI.dp(this, 104f), UI.WRAP))
             sb.refresh()
         }
     }
@@ -364,7 +364,10 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         panelName = name
         currentPanel = p
         p.alpha = 0f; p.translationY = UI.dpf(this, 12f)
-        panelHost.addView(p, panelLayoutParams(this, !prefs.leftHanded, heightFraction, nearWheel))
+        val lp = panelLayoutParams(this, !prefs.leftHanded, heightFraction, nearWheel)
+        p.maxHeightPx = minOf(lp.height, resources.displayMetrics.heightPixels - lp.topMargin - UI.dp(this, 16f))
+        lp.height = UI.WRAP
+        panelHost.addView(p, lp)
         p.animate().alpha(1f).translationY(0f).setDuration(160).start()
     }
 

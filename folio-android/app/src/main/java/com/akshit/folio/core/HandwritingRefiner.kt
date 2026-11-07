@@ -63,7 +63,8 @@ object HandwritingRefiner {
         val angleBefore = Math.toDegrees(atan(base0.first.toDouble()))
         if (abs(angleBefore) > 25) return null // deliberately angled writing / not a line
         val cx = (minX + maxX) / 2; val cy = (minY + maxY) / 2
-        rotateAll(out, cx, cy, -atan(base0.first) * k)
+        // a straight baseline is the main win, so rotate fully from medium strength upward
+        rotateAll(out, cx, cy, -atan(base0.first) * min(1f, 0.5f + k))
 
         // ---------------- words (clusters separated by gaps)
         val words = clusterWords(out, h)
