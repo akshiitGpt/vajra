@@ -52,15 +52,17 @@ class ToolWheelView(ctx: Context) : View(ctx) {
         val cx = width / 2f; val cy = height / 2f
         val r = min(width, height) / 2f - UI.dpf(context, 14f)
         // backdrop
-        fill.color = 0xE61E1F23.toInt()
+        fill.color = 0xFAFFFFFF.toInt()
+        fill.setShadowLayer(UI.dpf(context, 6f), 0f, UI.dpf(context, 2f), 0x33000000)
         c.drawCircle(cx, cy, r + UI.dpf(context, 12f), fill)
+        fill.clearShadowLayer()
         oval.set(cx - r, cy - r, cx + r, cy + r)
         track.strokeWidth = UI.dpf(context, 9f)
         for (i in 0 until 3) {
             if (eraserMode && i != 0) continue
-            track.color = 0x33FFFFFF
+            track.color = 0x1C000000
             c.drawArc(oval, arcs[i][0], arcs[i][1], false, track)
-            track.color = if (i == active) Color.WHITE else UI.ACCENT
+            track.color = if (i == active) 0xFF1A5FD0.toInt() else UI.ACCENT
             c.drawArc(oval, arcs[i][0], arcs[i][1] * value(i).coerceAtLeast(0.01f), false, track)
             // label at arc middle (inside)
             val mid = Math.toRadians((arcs[i][0] + arcs[i][1] / 2).toDouble())
@@ -70,9 +72,9 @@ class ToolWheelView(ctx: Context) : View(ctx) {
         }
         // centre swatch with brush size dot
         val inner = r - UI.dpf(context, 30f)
-        fill.color = if (eraserMode) 0xFFEEEEEE.toInt() else color or (0xFF shl 24)
+        fill.color = if (eraserMode) 0xFFF4F4F6.toInt() else color or (0xFF shl 24)
         c.drawCircle(cx, cy, inner, fill)
-        track.strokeWidth = UI.dpf(context, 2f); track.color = 0x66FFFFFF
+        track.strokeWidth = UI.dpf(context, 2f); track.color = 0x22000000
         c.drawCircle(cx, cy, inner, track)
         text.isFakeBoldText = true
         text.textSize = UI.dpf(context, 11f)

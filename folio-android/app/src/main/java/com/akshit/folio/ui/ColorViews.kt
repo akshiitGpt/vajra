@@ -125,7 +125,7 @@ class ColorWheelView(ctx: Context, var onChange: (Int) -> Unit) : View(ctx) {
 @SuppressLint("ViewConstructor")
 class GradientSlider(ctx: Context, val title: String, private val colorsFor: () -> IntArray, var value: Float, val onChange: (Float) -> Unit) : View(ctx) {
     private val track = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val knob = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; color = Color.WHITE }
+    private val knob = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; color = Color.WHITE; setShadowLayer(3f, 0f, 1f, 0x55000000) }
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = UI.SUB }
     private val checker: BitmapShader by lazy {
         val n = UI.dp(ctx, 6f)
@@ -169,7 +169,7 @@ class GradientSlider(ctx: Context, val title: String, private val colorsFor: () 
 @SuppressLint("ViewConstructor")
 class SwatchGrid(ctx: Context, var colors: List<Int>, private val onPick: (Int) -> Unit, private val onLong: ((Int) -> Unit)? = null) : View(ctx) {
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; color = 0x33FFFFFF }
+    private val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; color = 0x22000000 }
     private val cell get() = UI.dpf(context, 34f)
     private val gap get() = UI.dpf(context, 6f)
     private var downIdx = -1

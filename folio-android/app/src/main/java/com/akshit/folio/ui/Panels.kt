@@ -163,7 +163,7 @@ class ColorPickerPanel(
 
     private fun editHex() {
         val et = EditText(context).apply { setText(ColorUtil.hex(color)); inputType = InputType.TYPE_CLASS_TEXT; setTextColor(UI.TEXT) }
-        AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
             .setTitle("Hex color").setView(et)
             .setPositiveButton("OK") { _, _ -> ColorUtil.parse(et.text.toString().trim())?.let { setColor(it) } }
             .setNegativeButton("Cancel", null).show()
@@ -327,7 +327,7 @@ class LayersPanel(ctx: Context, private val canvas: CanvasView, private val onCh
             val l = d.layers[i]
             val row = UI.hbox(ctx)
             row.setPadding(UI.dp(ctx, 4f), UI.dp(ctx, 2f), UI.dp(ctx, 4f), UI.dp(ctx, 2f))
-            row.background = UI.rounded(if (i == d.activeLayer) 0x334C9AFF else UI.PANEL2, UI.dpf(ctx, 10f))
+            row.background = UI.rounded(if (i == d.activeLayer) 0x262F7CF6 else UI.PANEL2, UI.dpf(ctx, 10f))
             val eye = IconButton(ctx, if (l.visible) "eye" else "eye_off", 40f).apply {
                 setOnClickListener { l.visible = !l.visible; changed() }
             }
@@ -411,7 +411,7 @@ class LayersPanel(ctx: Context, private val canvas: CanvasView, private val onCh
 
     private fun rename(l: Layer) {
         val et = EditText(context).apply { setText(l.name); setTextColor(UI.TEXT) }
-        AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle("Rename layer").setView(et)
+        AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle("Rename layer").setView(et)
             .setPositiveButton("OK") { _, _ -> l.name = et.text.toString().ifBlank { l.name }; build() }
             .setNegativeButton("Cancel", null).show()
     }
@@ -433,7 +433,7 @@ class PatternTile(ctx: Context, val pattern: Pattern, private val spec: () -> Ba
         c.clipRect(0f, 0f, width.toFloat(), cam.viewH)
         r.draw(c, cam, s, resources.displayMetrics.density * 0.7f)
         c.restore()
-        border.color = if (isSelected) UI.ACCENT else 0x33FFFFFF
+        border.color = if (isSelected) UI.ACCENT else 0x22000000
         border.strokeWidth = UI.dpf(context, if (isSelected) 3f else 1f)
         c.drawRect(0f, 0f, width.toFloat(), cam.viewH, border)
         text.color = if (isSelected) UI.ACCENT else UI.SUB; text.textSize = UI.dpf(context, 10.5f)
@@ -502,12 +502,19 @@ class BackgroundPanel(ctx: Context, private val doc: Document, private val prefs
     }
 }
 
-/** Utility: wraps a panel into the right-side floating slot of a FrameLayout. */
-fun panelLayoutParams(ctx: Context, leftSide: Boolean, maxHeightFraction: Float = 0.86f): FrameLayout.LayoutParams {
+/**
+ * Panels pop out next to the tool wheel / brush strip (start side) like Concepts, or next to the
+ * layers sidebar (end side).
+ */
+fun panelLayoutParams(ctx: Context, leftSide: Boolean, maxHeightFraction: Float = 0.86f, nearWheel: Boolean = true): FrameLayout.LayoutParams {
     val dm = ctx.resources.displayMetrics
-    val w = minOf(UI.dp(ctx, 380f), dm.widthPixels - UI.dp(ctx, 24f))
+    val narrow = dm.widthPixels / dm.density < 600
+    val w = minOf(UI.dp(ctx, 360f), dm.widthPixels - UI.dp(ctx, 24f))
     val h = (dm.heightPixels * maxHeightFraction).toInt()
-    return FrameLayout.LayoutParams(w, h, (if (leftSide) Gravity.START else Gravity.END) or Gravity.TOP).apply {
-        topMargin = UI.dp(ctx, 64f); marginEnd = UI.dp(ctx, 12f); marginStart = UI.dp(ctx, 12f)
+    val atStart = if (nearWheel) leftSide else !leftSide
+    return FrameLayout.LayoutParams(w, h, (if (atStart) Gravity.START else Gravity.END) or Gravity.TOP).apply {
+        topMargin = UI.dp(ctx, if (narrow) 170f else 14f)
+        val side = if (narrow) 12f else if (nearWheel) 214f else 124f
+        marginStart = UI.dp(ctx, side); marginEnd = UI.dp(ctx, side)
     }
 }

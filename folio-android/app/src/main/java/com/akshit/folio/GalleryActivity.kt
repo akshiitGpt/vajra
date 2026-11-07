@@ -104,18 +104,18 @@ class GalleryActivity : Activity() {
     private fun open(id: String) = startActivity(Intent(this, CanvasActivity::class.java).putExtra("doc_id", id))
 
     private fun menu(m: DocMeta) {
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle(m.name)
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle(m.name)
             .setItems(arrayOf("Open", "Rename", "Duplicate", "Delete")) { _, w ->
                 when (w) {
                     0 -> open(m.id)
                     1 -> {
                         val et = EditText(this).apply { setText(m.name); setTextColor(UI.TEXT) }
-                        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle("Rename").setView(et)
+                        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle("Rename").setView(et)
                             .setPositiveButton("OK") { _, _ -> store.rename(m.id, et.text.toString().ifBlank { m.name }); refresh() }
                             .setNegativeButton("Cancel", null).show()
                     }
                     2 -> { store.duplicate(m.id); refresh() }
-                    3 -> AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle("Delete “${m.name}”?")
+                    3 -> AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle("Delete “${m.name}”?")
                         .setMessage("This cannot be undone.")
                         .setPositiveButton("Delete") { _, _ -> store.delete(m.id); refresh() }
                         .setNegativeButton("Cancel", null).show()

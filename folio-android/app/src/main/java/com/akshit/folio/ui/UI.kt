@@ -25,15 +25,17 @@ import kotlin.math.roundToInt
 
 /** Minimal programmatic UI kit (no XML, no AppCompat) so the app stays tiny and fast. */
 object UI {
-    const val BG = 0xFF131417.toInt()
-    const val PANEL = 0xF21E1F23.toInt()
-    const val PANEL_SOLID = 0xFF1E1F23.toInt()
-    const val PANEL2 = 0xFF2A2B31.toInt()
-    const val TEXT = 0xFFEDEDEF.toInt()
-    const val SUB = 0xFF9B9DA4.toInt()
-    const val ACCENT = 0xFF4C9AFF.toInt()
-    const val DIV = 0x1FFFFFFF
+    // Light, quiet chrome so the artwork is the brightest thing on screen (Concepts-style)
+    const val BG = 0xFFF1F1F3.toInt()
+    const val PANEL = 0xFAFFFFFF.toInt()
+    const val PANEL_SOLID = 0xFFFFFFFF.toInt()
+    const val PANEL2 = 0xFFEEEEF1.toInt()
+    const val TEXT = 0xFF222226.toInt()
+    const val SUB = 0xFF808289.toInt()
+    const val ACCENT = 0xFF2F7CF6.toInt()
+    const val DIV = 0x1A000000
     const val DANGER = 0xFFE5534B.toInt()
+    const val ICON = 0xFF3A3B40.toInt()
 
     fun dp(ctx: Context, v: Float): Int = (v * ctx.resources.displayMetrics.density).roundToInt()
     fun dpf(ctx: Context, v: Float): Float = v * ctx.resources.displayMetrics.density
@@ -44,9 +46,9 @@ object UI {
     }
 
     fun ripple(ctx: Context, base: GradientDrawable?): RippleDrawable =
-        RippleDrawable(ColorStateList.valueOf(0x33FFFFFF), base, base ?: rounded(Color.WHITE, dpf(ctx, 10f)))
+        RippleDrawable(ColorStateList.valueOf(0x22000000), base, base ?: rounded(Color.WHITE, dpf(ctx, 10f)))
 
-    fun card(ctx: Context): GradientDrawable = rounded(PANEL, dpf(ctx, 14f), dp(ctx, 1f), 0x22FFFFFF)
+    fun card(ctx: Context): GradientDrawable = rounded(PANEL, dpf(ctx, 16f), dp(ctx, 1f), 0x12000000)
 
     fun label(ctx: Context, text: String, sizeSp: Float = 14f, color: Int = TEXT, bold: Boolean = false): TextView = TextView(ctx).apply {
         this.text = text; textSize = sizeSp; setTextColor(color)
@@ -94,7 +96,8 @@ object UI {
         sb.max = 1000
         sb.progress = (((value - min) / (max - min)) * 1000).roundToInt().coerceIn(0, 1000)
         sb.progressTintList = ColorStateList.valueOf(ACCENT)
-        sb.thumbTintList = ColorStateList.valueOf(Color.WHITE)
+        sb.thumbTintList = ColorStateList.valueOf(ACCENT)
+        sb.progressBackgroundTintList = ColorStateList.valueOf(0x33000000)
         sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) {
                 if (!fromUser) return
@@ -118,7 +121,7 @@ object UI {
         val sw = Switch(ctx)
         sw.isChecked = checked
         sw.thumbTintList = ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()), intArrayOf(ACCENT, 0xFFBBBBBB.toInt()))
-        sw.trackTintList = ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()), intArrayOf(0x884C9AFF.toInt(), 0x55FFFFFF))
+        sw.trackTintList = ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()), intArrayOf(0x882F7CF6.toInt(), 0x33000000))
         sw.setOnCheckedChangeListener { _, b -> onChange(b) }
         row.addView(texts, lp(0, WRAP, 1f))
         row.addView(sw)
@@ -138,7 +141,7 @@ object UI {
         var cur = selected
         row.background = ripple(ctx, rounded(Color.TRANSPARENT, dpf(ctx, 8f)))
         row.setOnClickListener {
-            AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
                 .setTitle(title)
                 .setSingleChoiceItems(options.toTypedArray(), cur) { d, which ->
                     cur = which; v.text = options[which]; onSelect(which); d.dismiss()
@@ -162,7 +165,7 @@ object UI {
 
 /** Square icon button with selected / activated look. */
 @SuppressLint("ViewConstructor")
-class IconButton(ctx: Context, icon: String, sizeDp: Float = 44f, private val tint: Int = UI.TEXT) : View(ctx) {
+class IconButton(ctx: Context, icon: String, sizeDp: Float = 44f, private val tint: Int = UI.ICON) : View(ctx) {
     private val d = IconDrawable(icon, tint)
     private val size = UI.dp(ctx, sizeDp)
     private val selPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -178,7 +181,7 @@ class IconButton(ctx: Context, icon: String, sizeDp: Float = 44f, private val ti
     }
 
     var enabledLook = true
-        set(v) { field = v; d.color = if (v) tint else 0x55FFFFFF; invalidate() }
+        set(v) { field = v; d.color = if (v) tint else 0x40000000; invalidate() }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) = setMeasuredDimension(size, size)
 
@@ -187,11 +190,11 @@ class IconButton(ctx: Context, icon: String, sizeDp: Float = 44f, private val ti
     override fun onDraw(c: Canvas) {
         val r = UI.dpf(context, 10f)
         if (isSelected) {
-            selPaint.color = 0x334C9AFF
+            selPaint.color = 0x1F2F7CF6
             c.drawRoundRect(UI.dpf(context, 3f), UI.dpf(context, 3f), width - UI.dpf(context, 3f), height - UI.dpf(context, 3f), r, r, selPaint)
         }
         val pad = (width * 0.24f).toInt()
-        d.color = if (isSelected) UI.ACCENT else if (enabledLook) tint else 0x55FFFFFF
+        d.color = if (isSelected) UI.ACCENT else if (enabledLook) tint else 0x40000000
         d.setBounds(pad, pad, width - pad, height - pad)
         d.draw(c)
         dotColor?.let {
@@ -199,7 +202,7 @@ class IconButton(ctx: Context, icon: String, sizeDp: Float = 44f, private val ti
             val rr = UI.dpf(context, 3.6f)
             val cx = width - UI.dpf(context, 8f); val cy = height - UI.dpf(context, 8f)
             c.drawCircle(cx, cy, rr, dotPaint)
-            ring.color = 0x88FFFFFF.toInt(); ring.strokeWidth = UI.dpf(context, 1f)
+            ring.color = 0x33000000; ring.strokeWidth = UI.dpf(context, 1f)
             c.drawCircle(cx, cy, rr, ring)
         }
     }

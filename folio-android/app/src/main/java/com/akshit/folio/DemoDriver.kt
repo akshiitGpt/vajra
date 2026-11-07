@@ -55,6 +55,7 @@ class DemoDriver(private val a: CanvasActivity) {
         log("DEMO START $which size=${w}x$hh density=$d")
         c.debugTouches = true
         a.prefs.put(Prefs.K_SHAPE_MS, 450)
+        a.prefs.put(Prefs.K_REFINE, false) // only the handwriting scenario refines
         when (which) {
             "brushes" -> brushes()
             "palm" -> palm()
@@ -83,6 +84,7 @@ class DemoDriver(private val a: CanvasActivity) {
         lasso()
         eyedropper()
         layers()
+        handwriting()
         finale()
     }
 
@@ -107,7 +109,7 @@ class DemoDriver(private val a: CanvasActivity) {
         val n = BrushType.entries.size
         val cols = if (w > hh) 2 else 1
         val rows = (n + cols - 1) / cols
-        val left = 120f * d; val right = w - 40f * d
+        val left = 220f * d; val right = w - 130f * d
         val top = 90f * d; val bottom = hh - 40f * d
         val colW = (right - left) / cols
         val rowH = (bottom - top) / rows
@@ -412,6 +414,67 @@ class DemoDriver(private val a: CanvasActivity) {
         pause(500)
         shot("25_layers_panel")
         at(50) { a.closePanel() }
+    }
+
+    /** Messy line of handwriting: uphill baseline, bouncing words, uneven gaps, mixed slant. */
+    private fun messyWords(x0: Float, y0: Float, u: Float): List<List<P>> {
+        val out = ArrayList<List<P>>()
+        val h = 20f
+        val slope = kotlin.math.tan(Math.toRadians(-8.0)).toFloat()
+        val gaps = floatArrayOf(0f, 14f, 40f, 9f)
+        val bounce = floatArrayOf(0f, 7f, -6f, 3f)
+        val slant = floatArrayOf(0.05f, 0.38f, -0.12f, 0.25f)
+        var x = 0f
+        var seed = 11
+        fun rnd(): Float { seed = seed * 1103515245 + 12345; return ((seed ushr 8) and 0xFFFF) / 65535f - 0.5f }
+        for (wd in 0 until 4) {
+            x += gaps[wd]
+            for (l in 0 until 3) {
+                val tall = (wd + l) % 3 == 0
+                val n = 28
+                val pts = ArrayList<P>()
+                for (j in 0 until n) {
+                    val t = j / (n - 1f) * 2 * PI
+                    var lx = (6 + 6 * sin(t)).toFloat()
+                    var ly = if (tall) (-h * 1.6f * (1 - cos(t).toFloat()) / 2) else (-h * (1 - cos(t).toFloat()) / 2)
+                    lx += -ly * slant[wd] + rnd() * 1.3f
+                    ly += rnd() * 1.3f
+                    val px = x + lx
+                    pts.add(P(0, x0 + px * u, y0 + (slope * px + bounce[wd] + ly) * u, pressure = 0.55f + 0.3f * sin(t / 2).toFloat()))
+                }
+                out.add(pts)
+                x += 14f
+            }
+        }
+        return out
+    }
+
+    private fun handwriting() {
+        step("Handwriting refinement (like Apple Notes)")
+        resetDoc(Pattern.LINES)
+        at(10) {
+            a.prefs.put(Prefs.K_REFINE, true); a.prefs.put(Prefs.K_REFINE_DELAY, 3600); a.prefs.put(Prefs.K_REFINE_STRENGTH, 0.85f)
+            a.selectSlot(0, openSettingsIfSame = false); a.setColor(0xFF22324F.toInt()); a.slots[0].size = 3.5f
+        }
+        for (stroke in messyWords(w * 0.24f, hh * 0.52f, 2.3f * d)) penPath(stroke, 7)
+        at(200) { log("SHOT:26b_handwriting_before") }
+        pause(2600)
+        pause(2000) // auto-refine fires 3.6 s after the last stroke
+        at(10) {
+            val r = c.statLastRefine
+            check("handwriting.autoRefined", c.statRefined >= 1 && r != null, "refined=${c.statRefined}")
+            if (r != null) {
+                check("handwriting.baselineStraight", abs(r.angleAfterDeg) < 2.0, "before=${"%.1f".format(r.angleBeforeDeg)} after=${"%.1f".format(r.angleAfterDeg)}")
+                check("handwriting.spacingEven", r.gapSpreadAfter < r.gapSpreadBefore * 0.6f, "gapSpread ${r.gapSpreadBefore}->${r.gapSpreadAfter}")
+            }
+        }
+        shot("26c_handwriting_refined")
+        // one undo brings the original writing back
+        var n = 0
+        at(10) { n = c.history.undoCount; c.undo() }
+        pause(400)
+        at(10) { check("handwriting.undoRestores", c.history.undoCount == n - 1, "undo=${c.history.undoCount}") }
+        at(10) { a.prefs.put(Prefs.K_REFINE_DELAY, 900); a.prefs.put(Prefs.K_REFINE, false) }
     }
 
     private fun finale() {

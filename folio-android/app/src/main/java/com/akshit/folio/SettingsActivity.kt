@@ -85,6 +85,11 @@ class SettingsActivity : Activity() {
         tog(Prefs.K_SHAPE_HOLD, "Draw & hold → perfect shape", "Lines, circles, ellipses, arcs, rectangles, triangles, polygons", p.shapeHold)
         sli(Prefs.K_SHAPE_MS, "Hold time for shapes", 200f, 1200f, p.shapeHoldMs) { "${it.toInt()} ms" }
 
+        sec("Handwriting")
+        tog(Prefs.K_REFINE, "Refine handwriting", "When you pause, straighten the line and even out slant, size, spacing and jitter (like Apple Notes). One undo reverts it.", p.refineAuto)
+        sl(Prefs.K_REFINE_STRENGTH, "Refinement strength", 0.1f, 1f, p.refineStrength) { "${(it * 100).toInt()}%" }
+        sli(Prefs.K_REFINE_DELAY, "Refine after a pause of", 300f, 3000f, p.refineDelayMs) { "${it.toInt()} ms" }
+
         sec("Interface")
         tog(Prefs.K_LEFT, "Left-handed layout", "Moves tools to the right side (re-open the canvas)", p.leftHanded)
         tog(Prefs.K_SHOW_ZOOM, "Show zoom indicator", null, p.showZoom)
@@ -93,12 +98,12 @@ class SettingsActivity : Activity() {
 
         sec("Reset")
         body.addView(UI.button(this, "Reset all brushes to factory presets") {
-            AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle("Reset brushes?")
+            AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle("Reset brushes?")
                 .setPositiveButton("Reset") { _, _ -> Prefs.DEFAULT_SLOTS.indices.forEach { p.resetBrushSlot(it) } }
                 .setNegativeButton("Cancel", null).show()
         })
         body.addView(UI.button(this, "Reset all settings") {
-            AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle("Reset all settings?")
+            AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle("Reset all settings?")
                 .setPositiveButton("Reset") { _, _ -> p.sp.edit().clear().apply(); build() }
                 .setNegativeButton("Cancel", null).show()
         }.apply { (layoutParams as? LinearLayout.LayoutParams)?.topMargin = UI.dp(this@SettingsActivity, 8f) })

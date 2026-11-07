@@ -62,11 +62,14 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
     val slots = ArrayList<BrushSpec>()
     private val slotColors = ArrayList<Int>()
-    private val slotButtons = ArrayList<IconButton>()
-    private lateinit var eraserBtn: IconButton
-    private lateinit var lassoBtn: IconButton
-    private lateinit var dropperBtn: IconButton
-    private lateinit var handBtn: IconButton
+    private val slotButtons = ArrayList<com.akshit.folio.ui.SlotView>()
+    private lateinit var eraserBtn: com.akshit.folio.ui.SlotView
+    private lateinit var lassoBtn: com.akshit.folio.ui.SlotView
+    private lateinit var dropperBtn: com.akshit.folio.ui.SlotView
+    private lateinit var handBtn: com.akshit.folio.ui.SlotView
+    private var sidebar: com.akshit.folio.ui.LayerSidebar? = null
+    private lateinit var sidebarHolder: FrameLayout
+    private val sidebarRefresh = Runnable { sidebar?.refresh() }
     var currentSlot = 0; private set
     private var lastSlot = 0
     private var uiHidden = false
@@ -106,63 +109,23 @@ class CanvasActivity : Activity(), CanvasView.Listener {
     }
 
     // ------------------------------------------------------------------ layout
+    /**
+     * Concepts-style chrome: tool wheel in the top corner with undo/redo and the brush strip
+     * hanging below it, an action bar in the opposite top corner, and a docked layers column on
+     * the far edge. Everything else is canvas. Mirrored for left-handed use.
+     */
     private fun buildUi() {
-        val left = !prefs.leftHanded
+        val start = !prefs.leftHanded
+        val gStart = if (start) Gravity.START else Gravity.END
+        val gEnd = if (start) Gravity.END else Gravity.START
+        val dm = resources.displayMetrics
+        val tablet = dm.widthPixels / dm.density >= 600
         root = FrameLayout(this)
-        root.setBackgroundColor(Color.BLACK)
+        root.setBackgroundColor(Color.WHITE)
         root.addView(canvas, FrameLayout.LayoutParams(UI.MATCH, UI.MATCH))
+        fun d(v: Float) = UI.dp(this, v)
 
-        // ---- top bar
-        topBar = UI.hbox(this)
-        topBar.background = UI.card(this)
-        topBar.elevation = UI.dpf(this, 6f)
-        topBar.setPadding(UI.dp(this, 4f), 0, UI.dp(this, 4f), 0)
-        topBar.addView(IconButton(this, "gallery").apply { setOnClickListener { save(true); finish() } })
-        val title = UI.label(this, doc.name, 14f, UI.TEXT, true).apply {
-            setPadding(UI.dp(this@CanvasActivity, 4f), 0, UI.dp(this@CanvasActivity, 10f), 0)
-            maxWidth = UI.dp(this@CanvasActivity, 160f); maxLines = 1
-            setOnClickListener { renameDoc(this) }
-        }
-        topBar.addView(title)
-        undoBtn = IconButton(this, "undo").apply { setOnClickListener { canvas.undo() } }
-        redoBtn = IconButton(this, "redo").apply { setOnClickListener { canvas.redo() } }
-        topBar.addView(undoBtn); topBar.addView(redoBtn)
-        topBar.addView(IconButton(this, "layers").apply { setOnClickListener { togglePanel("layers") } })
-        topBar.addView(IconButton(this, "grid").apply { setOnClickListener { togglePanel("bg") } })
-        topBar.addView(IconButton(this, "zoomfit").apply { setOnClickListener { canvas.zoomFit() } })
-        topBar.addView(IconButton(this, "export").apply { setOnClickListener { showExport() } })
-        topBar.addView(IconButton(this, "penlab").apply { setOnClickListener { startActivity(Intent(this@CanvasActivity, PenLabActivity::class.java)) } })
-        topBar.addView(IconButton(this, "settings").apply { setOnClickListener { startActivity(Intent(this@CanvasActivity, SettingsActivity::class.java)) } })
-        root.addView(topBar, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = UI.dp(this@CanvasActivity, 10f) })
-
-        // ---- tool bar (brush slots + tools)
-        toolBar = UI.vbox(this)
-        toolBar.setPadding(UI.dp(this, 4f), UI.dp(this, 6f), UI.dp(this, 4f), UI.dp(this, 6f))
-        slots.forEachIndexed { i, s ->
-            val b = IconButton(this, s.type.icon)
-            b.dotColor = slotColors[i]
-            b.setOnClickListener { selectSlot(i) }
-            b.setOnLongClickListener { selectSlot(i, openSettingsIfSame = false); openBrushPanel(); true }
-            slotButtons.add(b); toolBar.addView(b)
-        }
-        toolBar.addView(View(this).apply { setBackgroundColor(UI.DIV) }, LinearLayout.LayoutParams(UI.dp(this, 32f), UI.dp(this, 1f)).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = UI.dp(this@CanvasActivity, 4f); bottomMargin = UI.dp(this@CanvasActivity, 4f) })
-        eraserBtn = IconButton(this, "eraser").apply { setOnClickListener { if (canvas.tool == CanvasView.Tool.ERASER) togglePanel("eraser") else setTool(CanvasView.Tool.ERASER) } }
-        lassoBtn = IconButton(this, "lasso").apply { setOnClickListener { setTool(CanvasView.Tool.LASSO) } }
-        dropperBtn = IconButton(this, "eyedropper").apply { setOnClickListener { setTool(CanvasView.Tool.EYEDROPPER) } }
-        handBtn = IconButton(this, "hand").apply { setOnClickListener { setTool(CanvasView.Tool.PAN) } }
-        for (b in listOf(eraserBtn, lassoBtn, dropperBtn, handBtn)) toolBar.addView(b)
-        val toolScroll = android.widget.ScrollView(this).apply {
-            isVerticalScrollBarEnabled = false
-            background = UI.card(this@CanvasActivity)
-            elevation = UI.dpf(this@CanvasActivity, 6f)
-            addView(toolBar)
-        }
-        root.addView(toolScroll, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, (if (left) Gravity.START else Gravity.END) or Gravity.CENTER_VERTICAL).apply {
-            marginStart = UI.dp(this@CanvasActivity, 10f); marginEnd = UI.dp(this@CanvasActivity, 10f)
-            topMargin = UI.dp(this@CanvasActivity, 70f); bottomMargin = UI.dp(this@CanvasActivity, 170f)
-        })
-
-        // ---- tool wheel
+        // ---- tool wheel (top corner)
         wheel = ToolWheelView(this)
         wheel.sizeLabel = { t -> if (canvas.tool == CanvasView.Tool.ERASER) "${BrushPanel.tToSize(t).toInt()}px" else "%.1f".format(BrushPanel.tToSize(t)) }
         wheel.onCenterTap = { togglePanel("color") }
@@ -170,24 +133,98 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         wheel.onSize = { t ->
             val s = BrushPanel.tToSize(t)
             if (canvas.tool == CanvasView.Tool.ERASER) { canvas.eraserSizePx = s; prefs.put("eraser_size", s) }
-            else { slots[currentSlot].size = s }
+            else { slots[currentSlot].size = s; slotButtons[currentSlot].sizeText = fmtSize(s) }
             canvas.invalidate()
         }
         wheel.onOpacity = { o -> slots[currentSlot].opacity = o }
         wheel.onSmoothing = { v -> slots[currentSlot].smoothing = v }
-        root.addView(wheel, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or (if (left) Gravity.START else Gravity.END)).apply {
-            marginStart = UI.dp(this@CanvasActivity, 6f); marginEnd = UI.dp(this@CanvasActivity, 6f); bottomMargin = UI.dp(this@CanvasActivity, 8f)
+        root.addView(wheel, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or gStart).apply {
+            marginStart = d(6f); marginEnd = d(6f); topMargin = d(6f)
         })
+
+        // ---- undo / redo beside the wheel
+        val ur = UI.vbox(this)
+        ur.background = UI.card(this); ur.elevation = UI.dpf(this, 4f)
+        undoBtn = IconButton(this, "undo", 44f).apply { setOnClickListener { canvas.undo() } }
+        redoBtn = IconButton(this, "redo", 44f).apply { setOnClickListener { canvas.redo() } }
+        ur.addView(undoBtn); ur.addView(redoBtn)
+        root.addView(ur, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or gStart).apply {
+            marginStart = d(160f); marginEnd = d(160f); topMargin = d(20f)
+        })
+
+        // ---- brush strip under the wheel
+        toolBar = UI.vbox(this)
+        toolBar.gravity = Gravity.CENTER_HORIZONTAL
+        toolBar.setPadding(d(3f), d(4f), d(3f), d(4f))
+        slots.forEachIndexed { i, s ->
+            val b = com.akshit.folio.ui.SlotView(this, s.type.icon)
+            b.dotColor = slotColors[i]
+            b.sizeText = fmtSize(s.size)
+            b.setOnClickListener { selectSlot(i) }
+            b.setOnLongClickListener { selectSlot(i, openSettingsIfSame = false); openBrushPanel(); true }
+            slotButtons.add(b); toolBar.addView(b)
+        }
+        toolBar.addView(View(this).apply { setBackgroundColor(UI.DIV) }, LinearLayout.LayoutParams(d(36f), d(1f)).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = d(4f); bottomMargin = d(4f) })
+        fun tool(icon: String, label: String) = com.akshit.folio.ui.SlotView(this, icon).apply { sizeText = label }
+        eraserBtn = tool("eraser", "Erase").apply { setOnClickListener { if (canvas.tool == CanvasView.Tool.ERASER) togglePanel("eraser") else setTool(CanvasView.Tool.ERASER) } }
+        lassoBtn = tool("lasso", "Select").apply { setOnClickListener { setTool(CanvasView.Tool.LASSO) } }
+        dropperBtn = tool("eyedropper", "Pick").apply { setOnClickListener { setTool(CanvasView.Tool.EYEDROPPER) } }
+        handBtn = tool("hand", "Pan").apply { setOnClickListener { setTool(CanvasView.Tool.PAN) } }
+        for (b in listOf(eraserBtn, lassoBtn, dropperBtn, handBtn)) toolBar.addView(b)
+        val toolScroll = android.widget.ScrollView(this).apply {
+            isVerticalScrollBarEnabled = false
+            background = UI.card(this@CanvasActivity)
+            elevation = UI.dpf(this@CanvasActivity, 4f)
+            addView(toolBar)
+        }
+        root.addView(toolScroll, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or gStart).apply {
+            marginStart = d(12f); marginEnd = d(12f); topMargin = d(166f); bottomMargin = d(if (tablet) 12f else 76f)
+        })
+
+        // ---- action bar (opposite top corner)
+        topBar = UI.hbox(this)
+        topBar.background = UI.card(this)
+        topBar.elevation = UI.dpf(this, 4f)
+        topBar.setPadding(d(4f), 0, d(4f), 0)
+        val title = UI.label(this, doc.name, 14f, UI.TEXT, true).apply {
+            setPadding(d(12f), 0, d(6f), 0)
+            maxWidth = d(170f); maxLines = 1
+            setOnClickListener { renameDoc(this) }
+        }
+        topBar.addView(title)
+        topBar.addView(IconButton(this, "grid").apply { setOnClickListener { togglePanel("bg") } })
+        topBar.addView(IconButton(this, "layers").apply { setOnClickListener { toggleSidebar() } })
+        topBar.addView(IconButton(this, "zoomfit").apply { setOnClickListener { canvas.zoomFit() } })
+        topBar.addView(IconButton(this, "export").apply { setOnClickListener { showExport() } })
+        topBar.addView(IconButton(this, "penlab").apply { setOnClickListener { startActivity(Intent(this@CanvasActivity, PenLabActivity::class.java)) } })
+        topBar.addView(IconButton(this, "settings").apply { setOnClickListener { startActivity(Intent(this@CanvasActivity, SettingsActivity::class.java)) } })
+        topBar.addView(IconButton(this, "gallery").apply { setOnClickListener { save(true); finish() } })
+        if (tablet) root.addView(topBar, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or gEnd).apply {
+            topMargin = d(12f); marginEnd = d(12f); marginStart = d(12f)
+        }) else {
+            // phones: action bar sits at the bottom so the wheel keeps the top corner
+            title.visibility = View.GONE
+            root.addView(topBar, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or gEnd).apply { bottomMargin = d(12f); marginEnd = d(8f); marginStart = d(8f) })
+        }
+
+        // ---- docked layers column
+        sidebarHolder = FrameLayout(this)
+        root.addView(sidebarHolder, FrameLayout.LayoutParams(UI.WRAP, UI.MATCH, gEnd).apply {
+            topMargin = d(72f); bottomMargin = d(70f); marginEnd = d(12f); marginStart = d(12f)
+        })
+        if (tablet && prefs.sp.getBoolean("sidebar", true)) showSidebar(true)
 
         // ---- zoom pill
         zoomPill = UI.label(this, "100%", 12.5f, UI.TEXT, true).apply {
-            background = UI.rounded(0xCC1E1F23.toInt(), UI.dpf(this@CanvasActivity, 16f))
-            setPadding(UI.dp(this@CanvasActivity, 14f), UI.dp(this@CanvasActivity, 7f), UI.dp(this@CanvasActivity, 14f), UI.dp(this@CanvasActivity, 7f))
+            background = UI.card(this@CanvasActivity)
+            elevation = UI.dpf(this@CanvasActivity, 3f)
+            setPadding(d(14f), d(7f), d(14f), d(7f))
             setOnClickListener { canvas.zoomReset() }
             setOnLongClickListener { canvas.zoomFit(); true }
             visibility = if (prefs.showZoom) View.VISIBLE else View.GONE
         }
-        root.addView(zoomPill, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = UI.dp(this@CanvasActivity, 16f) })
+        root.addView(zoomPill, if (tablet) FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = d(16f) }
+            else FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or gEnd).apply { topMargin = d(20f); marginEnd = d(12f); marginStart = d(12f) })
 
         // ---- selection bar
         selectionBar = UI.hbox(this)
@@ -195,28 +232,53 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         selectionBar.elevation = UI.dpf(this, 6f)
         selectionBar.visibility = View.GONE
         fun sel(icon: String, f: () -> Unit) = selectionBar.addView(IconButton(this, icon).apply { setOnClickListener { f() } })
-        selectionBar.addView(UI.label(this, "Selection", 12f, UI.SUB, true).apply { setPadding(UI.dp(this@CanvasActivity, 12f), 0, UI.dp(this@CanvasActivity, 4f), 0) })
+        selectionBar.addView(UI.label(this, "Selection", 12f, UI.SUB, true).apply { setPadding(d(12f), 0, d(4f), 0) })
+        sel("sparkle") { if (!canvas.refineSelection()) showHint("That doesn't look like handwriting") else showHint("Handwriting refined") }
         sel("trash") { canvas.deleteSelection() }
         sel("copy") { canvas.duplicateSelection() }
         sel("recolor") { canvas.recolorSelection(slotColors[currentSlot]) }
         sel("front") { canvas.bringSelectionToFront() }
         sel("selectall") { canvas.selectAllInLayer() }
         sel("check") { canvas.clearSelection() }
-        root.addView(selectionBar, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = UI.dp(this@CanvasActivity, 70f) })
+        root.addView(selectionBar, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = d(64f) })
 
         // ---- hint
         hint = UI.label(this, "", 13f, Color.WHITE, true).apply {
-            background = UI.rounded(0xDD2A2B31.toInt(), UI.dpf(this@CanvasActivity, 18f))
-            setPadding(UI.dp(this@CanvasActivity, 16f), UI.dp(this@CanvasActivity, 8f), UI.dp(this@CanvasActivity, 16f), UI.dp(this@CanvasActivity, 8f))
+            background = UI.rounded(0xE62A2B31.toInt(), UI.dpf(this@CanvasActivity, 18f))
+            setPadding(d(16f), d(8f), d(16f), d(8f))
             visibility = View.GONE
         }
-        root.addView(hint, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = UI.dp(this@CanvasActivity, 60f) })
+        root.addView(hint, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = d(120f) })
 
         panelHost = FrameLayout(this)
         root.addView(panelHost, FrameLayout.LayoutParams(UI.MATCH, UI.MATCH))
         setContentView(root)
         updateUndo()
         onCameraChanged()
+    }
+
+    private fun fmtSize(s: Float) = if (s >= 10) "${s.toInt()}" else "%.1f".format(s)
+
+    private fun showSidebar(show: Boolean) {
+        sidebarHolder.removeAllViews()
+        sidebar = null
+        if (show) {
+            val sb = com.akshit.folio.ui.LayerSidebar(this, canvas, { togglePanel("layers") }, {
+                val d = doc
+                val l = com.akshit.folio.model.Layer("Layer ${d.layers.size + 1}")
+                val at = d.activeLayer + 1
+                canvas.history.run(com.akshit.folio.model.LambdaCommand({ d.layers.add(at, l); d.activeLayer = at }, { d.layers.remove(l); d.activeLayer = (at - 1).coerceAtLeast(0) }))
+            })
+            sidebar = sb
+            sidebarHolder.addView(sb, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP))
+            sb.refresh()
+        }
+    }
+
+    fun toggleSidebar() {
+        val show = sidebar == null
+        prefs.put("sidebar", show)
+        showSidebar(show)
     }
 
     // ------------------------------------------------------------------ brushes & tools
@@ -241,7 +303,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
     private fun refreshToolUi() {
         val t = canvas.tool
-        slotButtons.forEachIndexed { k, b -> b.isSelected = t == CanvasView.Tool.BRUSH && k == currentSlot; b.dotColor = slotColors[k] }
+        slotButtons.forEachIndexed { k, b -> b.isSelected = t == CanvasView.Tool.BRUSH && k == currentSlot; b.dotColor = slotColors[k]; b.sizeText = fmtSize(slots[k].size) }
         eraserBtn.isSelected = t == CanvasView.Tool.ERASER
         lassoBtn.isSelected = t == CanvasView.Tool.LASSO
         dropperBtn.isSelected = t == CanvasView.Tool.EYEDROPPER
@@ -282,7 +344,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
                 colorPanel = p
                 showPanel(name, p)
             }
-            "layers" -> showPanel(name, LayersPanel(this, canvas, { }, { closePanel() }))
+            "layers" -> showPanel(name, LayersPanel(this, canvas, { sidebar?.refresh() }, { closePanel() }), nearWheel = false)
             "bg" -> showPanel(name, BackgroundPanel(this, doc, prefs, { canvas.invalidate() }, { closePanel() }))
             "eraser" -> {
                 val p = Panel(this, "Eraser", { closePanel() })
@@ -297,12 +359,12 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         }
     }
 
-    fun showPanel(name: String, p: Panel, heightFraction: Float = 0.86f) {
+    fun showPanel(name: String, p: Panel, heightFraction: Float = 0.86f, nearWheel: Boolean = true) {
         closePanel()
         panelName = name
         currentPanel = p
         p.alpha = 0f; p.translationY = UI.dpf(this, 12f)
-        panelHost.addView(p, panelLayoutParams(this, prefs.leftHanded, heightFraction))
+        panelHost.addView(p, panelLayoutParams(this, !prefs.leftHanded, heightFraction, nearWheel))
         p.animate().alpha(1f).translationY(0f).setDuration(160).start()
     }
 
@@ -324,6 +386,8 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         handler.removeCallbacks(autosave)
         handler.postDelayed(autosave, prefs.autosaveSec * 1000L)
         if (panelName == "layers") (currentPanel as? LayersPanel)?.build()
+        handler.removeCallbacks(sidebarRefresh)
+        handler.postDelayed(sidebarRefresh, 450)
     }
 
     override fun onColorPicked(color: Int) {
@@ -398,6 +462,8 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         topBar.visibility = v
         (toolBar.parent as View).visibility = v
         wheel.visibility = v
+        (undoBtn.parent as View).visibility = v
+        sidebarHolder.visibility = v
         zoomPill.visibility = if (prefs.showZoom) v else View.GONE
         if (uiHidden) { closePanel(); selectionBar.visibility = View.GONE }
         else if (canvas.selection.isNotEmpty()) selectionBar.visibility = View.VISIBLE
@@ -407,7 +473,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
     private fun renameDoc(tv: TextView) {
         val et = android.widget.EditText(this).apply { setText(doc.name); setTextColor(UI.TEXT) }
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle("Rename drawing").setView(et)
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle("Rename drawing").setView(et)
             .setPositiveButton("OK") { _, _ -> doc.name = et.text.toString().ifBlank { doc.name }; tv.text = doc.name; save(false) }
             .setNegativeButton("Cancel", null).show()
     }
@@ -428,7 +494,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
     private fun showExport() {
         val options = arrayOf("PNG with paper", "PNG transparent", "SVG (vector)", "PNG with paper · 4K")
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle("Export").setItems(options) { _, which ->
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle("Export").setItems(options) { _, which ->
             when (which) {
                 0 -> exportPng(canvas.exportPng(2400, true))
                 1 -> exportPng(canvas.exportPng(2400, false))

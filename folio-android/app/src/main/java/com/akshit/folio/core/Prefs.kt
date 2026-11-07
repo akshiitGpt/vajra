@@ -84,6 +84,11 @@ class Prefs(ctx: Context) {
     val showZoom get() = b(K_SHOW_ZOOM, true)
     val autosaveSec get() = i(K_AUTOSAVE, 5)
 
+    // ---------------- handwriting refinement
+    val refineAuto get() = b(K_REFINE, true)
+    val refineStrength get() = f(K_REFINE_STRENGTH, 0.7f)
+    val refineDelayMs get() = i(K_REFINE_DELAY, 900)
+
     // ---------------- gestures
     fun action(key: String): GestureAction {
         val def = DEFAULT_ACTIONS[key] ?: GestureAction.NONE
@@ -140,6 +145,9 @@ class Prefs(ctx: Context) {
         const val K_VOLUME = "volume_keys"
         const val K_SHOW_ZOOM = "show_zoom"
         const val K_AUTOSAVE = "autosave"
+        const val K_REFINE = "refine_auto"
+        const val K_REFINE_STRENGTH = "refine_strength"
+        const val K_REFINE_DELAY = "refine_delay"
 
         // Gesture keys
         const val G_TWO_TAP = "g_two_tap"

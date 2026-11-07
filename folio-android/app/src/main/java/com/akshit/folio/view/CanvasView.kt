@@ -25,6 +25,8 @@ import com.akshit.folio.brush.RenderKind
 import com.akshit.folio.core.Camera
 import com.akshit.folio.core.FingerDraw
 import com.akshit.folio.core.GestureAction
+import com.akshit.folio.core.HandwritingRefiner
+import com.akshit.folio.brush.StrokeRenderer
 import com.akshit.folio.core.Prefs
 import com.akshit.folio.core.ShapeRecognizer
 import com.akshit.folio.model.Document
@@ -831,6 +833,7 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
 
     // ------------------------------------------------------------------ strokes
     private fun beginStroke(ev: MotionEvent, idx: Int, finger: Boolean) {
+        removeCallbacks(refineRunnable) // still writing
         if (doc.active().locked || !doc.active().visible) { mode = Mode.CONSUMED; return }
         mode = Mode.DRAW
         activeIsFinger = finger
@@ -994,7 +997,91 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         val layer = doc.active()
         history.run(LambdaCommand({ layer.strokes.add(fin) }, { layer.strokes.remove(fin) }))
         statStrokesCommitted++
+        if (shaped == null && prefs.refineAuto && isWritingBrush(fin)) queueForRefine(layer, fin)
         shaped = null; liveBrush = null
+    }
+
+    // ------------------------------------------------------------------ handwriting refinement
+    private val inkGroup = ArrayList<Stroke>()
+    private var inkLayer: com.akshit.folio.model.Layer? = null
+    private val refineRunnable = Runnable { refineRecent() }
+    var statRefined = 0; private set
+    var statLastRefine: HandwritingRefiner.Result? = null; private set
+    private var refineAnim: ValueAnimator? = null
+
+    private fun isWritingBrush(s: Stroke): Boolean = when (s.brush.type) {
+        BrushType.PEN, BrushType.FINELINER, BrushType.TECHNICAL, BrushType.PENCIL, BrushType.INK_BRUSH, BrushType.CALLIGRAPHY -> true
+        else -> false
+    }
+
+    private fun queueForRefine(layer: com.akshit.folio.model.Layer, s: Stroke) {
+        if (inkLayer !== layer) { inkGroup.clear(); inkLayer = layer }
+        // a stroke far below/above the current line starts a new line: refine the old one first
+        if (inkGroup.isNotEmpty()) {
+            StrokeRenderer.build(s)
+            val hs = inkGroup.map { (it.bounds.height()).toDouble() }.sorted()
+            val h = hs[hs.size / 2].coerceAtLeast(1e-9)
+            val gy = inkGroup.map { (it.worldMinY() + it.worldMaxY()) / 2 }.sorted().let { it[it.size / 2] }
+            val sy = (s.worldMinY() + s.worldMaxY()) / 2
+            if (abs(sy - gy) > 2.2 * h) { removeCallbacks(refineRunnable); refineRecent() ; inkLayer = layer }
+        }
+        inkGroup.add(s)
+        removeCallbacks(refineRunnable)
+        postDelayed(refineRunnable, prefs.refineDelayMs.toLong())
+    }
+
+    private fun refineRecent() {
+        val layer = inkLayer ?: return
+        val group = inkGroup.filter { g -> layer.strokes.any { it === g } }
+        inkGroup.clear()
+        if (group.size >= 2 && mode != Mode.DRAW) refineStrokes(layer, group)
+    }
+
+    /** Refines the given strokes (a line of handwriting). Returns false if they don't look like writing. */
+    fun refineStrokes(layer: com.akshit.folio.model.Layer, group: List<Stroke>): Boolean {
+        if (group.size < 2 || layer.locked) return false
+        val gox = group[0].ox; val goy = group[0].oy
+        val inks = group.map { s ->
+            HandwritingRefiner.Ink(FloatArray(s.n) { ((s.ox - gox) + s.x(it)).toFloat() }, FloatArray(s.n) { ((s.oy - goy) + s.y(it)).toFloat() })
+        }
+        val res = HandwritingRefiner.refine(inks, prefs.refineStrength) ?: return false
+        statLastRefine = res
+        val before = ArrayList(layer.strokes)
+        val olds = group.map { it }
+        val news = group.map { it.duplicate() }
+        val map = HashMap<Stroke, Stroke>()
+        for (i in olds.indices) map[olds[i]] = news[i]
+        for (i in layer.strokes.indices) map[layer.strokes[i]]?.let { layer.strokes[i] = it }
+        history.push(SnapshotCommand(layer, before, ArrayList(layer.strokes)))
+        statRefined++
+        val dx = group.map { (it.ox - gox).toFloat() }; val dy = group.map { (it.oy - goy).toFloat() }
+        refineAnim?.end()
+        refineAnim = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 280
+            interpolator = DecelerateInterpolator(1.4f)
+            addUpdateListener { a ->
+                val t = a.animatedValue as Float
+                for (k in news.indices) {
+                    val o = olds[k]; val n = news[k]; val r = res.strokes[k]
+                    for (j in 0 until n.n) {
+                        val tx = r.xs[j] - dx[k]; val ty = r.ys[j] - dy[k]
+                        n.setXY(j, o.x(j) + (tx - o.x(j)) * t, o.y(j) + (ty - o.y(j)) * t)
+                    }
+                    n.invalidate()
+                }
+                invalidateContent()
+            }
+            start()
+        }
+        haptic()
+        return true
+    }
+
+    fun refineSelection(): Boolean {
+        if (selection.isEmpty()) return false
+        val ok = refineStrokes(doc.active(), selection.toList())
+        clearSelection()
+        return ok
     }
 
     // ------------------------------------------------------------------ eraser

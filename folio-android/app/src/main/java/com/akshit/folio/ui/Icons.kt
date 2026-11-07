@@ -55,6 +55,7 @@ object Icons {
         "rename" to "M4 20 H20 M6 16 L15.5 6.5 L18 9 L8.5 18.5 H6 Z",
         "minus" to "M5 12 H19",
         "image" to "M4 5 H20 V19 H4 Z M4 16 L9 11 L13 15 L16 12 L20 16 O 15.5 8.5 1.5",
+        "sparkle" to "M12 3 L13.6 9.2 L20 11 L13.6 12.8 L12 19 L10.4 12.8 L4 11 L10.4 9.2 Z M18.5 3.5 V7 M16.8 5.2 H20.2",
         "flip" to "M12 3 V21 M9 7 L4 17 H9 Z M15 7 L20 17 H15 Z",
     )
 
