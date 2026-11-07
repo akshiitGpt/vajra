@@ -520,8 +520,8 @@ fun panelLayoutParams(ctx: Context, leftSide: Boolean, maxHeightFraction: Float 
     val h = (dm.heightPixels * maxHeightFraction).toInt()
     val atStart = if (nearWheel) leftSide else !leftSide
     return FrameLayout.LayoutParams(w, h, (if (atStart) Gravity.START else Gravity.END) or Gravity.TOP).apply {
-        topMargin = UI.dp(ctx, if (narrow) 170f else if (nearWheel) 14f else 78f)
-        val side = if (narrow) 12f else if (nearWheel) 214f else 124f
+        topMargin = UI.dp(ctx, if (narrow) 230f else 58f)
+        val side = if (narrow) 12f else if (nearWheel) 300f else 126f
         marginStart = UI.dp(ctx, side); marginEnd = UI.dp(ctx, side)
     }
 }

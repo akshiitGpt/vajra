@@ -56,6 +56,8 @@ object Icons {
         "minus" to "M5 12 H19",
         "image" to "M4 5 H20 V19 H4 Z M4 16 L9 11 L13 15 L16 12 L20 16 O 15.5 8.5 1.5",
         "sparkle" to "M12 3 L13.6 9.2 L20 11 L13.6 12.8 L12 19 L10.4 12.8 L4 11 L10.4 9.2 Z M18.5 3.5 V7 M16.8 5.2 H20.2",
+        "ruler" to "M3 15 L15 3 L21 9 L9 21 Z M7 13 L9 15 M10 10 L12 12 M13 7 L15 9",
+        "wheel" to "O 12 12 8.5 O 12 12 3 M12 3.5 V9 M12 15 V20.5 M3.5 12 H9 M15 12 H20.5",
         "flip" to "M12 3 V21 M9 7 L4 17 H9 Z M15 7 L20 17 H15 Z",
     )
 

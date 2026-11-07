@@ -914,6 +914,13 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         if (s.n == 0 || force) {
             s.add(lx, ly, p, tilt, t); lastLx = lx; lastLy = ly; return
         }
+        if (s.brush.smoothing >= 0.995f) {
+            // Smoothing at 100% draws a perfectly straight line from the start point
+            if (s.n >= 2) s.truncate(1)
+            s.add(lx, ly, p, tilt, t); lastLx = lx; lastLy = ly
+            strokeScreenLen = (hypot(lx - s.x(0), ly - s.y(0)) * cam.scale).toFloat()
+            return
+        }
         val k = 1f - (s.brush.smoothing.coerceIn(0f, 1f) * 0.88f)
         val nx = lastLx + (lx - lastLx) * k
         val ny = lastLy + (ly - lastLy) * k

@@ -109,7 +109,7 @@ class DemoDriver(private val a: CanvasActivity) {
         val n = BrushType.entries.size
         val cols = if (w > hh) 2 else 1
         val rows = (n + cols - 1) / cols
-        val left = 220f * d; val right = w - 130f * d
+        val left = 300f * d; val right = w - 140f * d
         val top = 90f * d; val bottom = hh - 40f * d
         val colW = (right - left) / cols
         val rowH = (bottom - top) / rows
@@ -183,7 +183,13 @@ class DemoDriver(private val a: CanvasActivity) {
         at(50) { a.togglePanel("bg") }
         pause(700)
         shot("08_background_panel")
-        at(50) { a.closePanel() }
+        at(50) { a.togglePanel("precision") }
+        pause(500)
+        shot("08b_precision_menu")
+        at(50) { a.closePanel(); a.setBarMode(true, left = true) }
+        pause(500)
+        shot("08c_tool_bar_mode")
+        at(50) { a.setBarMode(false) }
         val list = listOf(Pattern.GRAPH to "09_bg_graph", Pattern.ISOMETRIC to "10_bg_isometric", Pattern.HEX to "11_bg_hex",
             Pattern.PERSPECTIVE_2 to "12_bg_perspective_2pt", Pattern.ISO_DOTS to "13_bg_iso_dots_night")
         for ((p, name) in list) {
