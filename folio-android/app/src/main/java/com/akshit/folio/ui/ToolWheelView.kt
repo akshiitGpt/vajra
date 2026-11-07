@@ -40,7 +40,7 @@ class ToolWheelView(ctx: Context) : View(ctx) {
     /** Compact = colour + sliders only (used at the top of the Tool Bar). */
     var compact = false; set(v) { field = v; requestLayout(); invalidate() }
     /** Wheel scale (pinch to resize), 0.7 .. 1.4 */
-    var scaleFactor = 1f; set(v) { field = v.coerceIn(0.7f, 1.4f); requestLayout(); invalidate() }
+    var scaleFactor = 1f; set(v) { field = v.coerceIn(if (compact) 0.45f else 0.7f, 1.4f); requestLayout(); invalidate() }
 
     var onCenterTap: (() -> Unit)? = null
     var onCenterLongPress: (() -> Unit)? = null

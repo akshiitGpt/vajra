@@ -310,7 +310,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         val col = UI.vbox(this)
         col.gravity = Gravity.CENTER_HORIZONTAL
         col.setPadding(UI.dp(this, 3f), UI.dp(this, 4f), UI.dp(this, 3f), UI.dp(this, 6f))
-        val mw = ToolWheelView(this).apply { compact = true; scaleFactor = 0.82f }
+        val mw = ToolWheelView(this).apply { compact = true; scaleFactor = 0.5f }
         wireWheel(mw)
         miniWheel = mw
         col.addView(mw)
