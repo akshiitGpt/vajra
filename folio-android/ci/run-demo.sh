@@ -10,6 +10,7 @@ shot() { adb exec-out screencap -p > "$OUT/screens/$1.png"; echo "captured $1"; 
 
 adb wait-for-device
 adb shell settings put secure immersive_mode_confirmations confirmed
+adb shell settings put global hide_error_dialogs 1 || true
 adb shell settings put global window_animation_scale 0
 adb shell wm size 1800x1125
 adb shell wm density 240
