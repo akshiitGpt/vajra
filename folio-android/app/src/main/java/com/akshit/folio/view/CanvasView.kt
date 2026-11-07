@@ -66,6 +66,8 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         fun onPenDetected() {}
         fun onSelectionChanged(count: Int) {}
         fun onShapeRecognized(kind: ShapeRecognizer.Kind) {}
+        /** Selection box moved on screen: AABB in view px, width/height % and angle. */
+        fun onSelectionGeometry(box: RectF, wPct: Int, hPct: Int, deg: Int) {}
     }
 
     enum class Tool { BRUSH, ERASER, LASSO, EYEDROPPER, PAN }
@@ -143,7 +145,7 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
     private var penTapTime = 0L; private var penTapX = 0f; private var penTapY = 0f
 
     // eraser
-    private var eraseBefore: ArrayList<Stroke>? = null
+    private var eraseBefore: HashMap<com.akshit.folio.model.Layer, ArrayList<Stroke>>? = null
     private var eraseX = 0f; private var eraseY = 0f
 
     // lasso & selection
@@ -154,9 +156,16 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
     private var selBounds = DoubleArray(4)
     private var selPivotX = 0.0; private var selPivotY = 0.0
     private var selTx = 0.0; private var selTy = 0.0; private var selScale = 1.0; private var selRot = 0.0
+    private var selSx = 1.0; private var selSy = 1.0
+    private var selStartSx = 1.0; private var selStartSy = 1.0
+    private var selCorner = 0
+    /** Selection options (bottom bar) */
+    var selRotateOn = false; set(v) { field = v; invalidate() }
+    var selStretch = false
     private var selStartX = 0f; private var selStartY = 0f
     private var selStartScale = 1.0; private var selStartRot = 0.0; private var selStartTx = 0.0; private var selStartTy = 0.0
     private val selExtra = Matrix()
+    private val selBox = RectF()
 
     // eyedropper / hover
     private var eyeX = 0f; private var eyeY = 0f; private var eyeColor = 0
@@ -318,19 +327,31 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
             c.drawPath(lassoPath, overlay)
             overlay.pathEffect = null
         }
-        // selection box with handles
+        // selection: guide lines across the screen through the box edges + round corner handles
         if (selection.isNotEmpty()) {
             val pts = selectionScreenCorners()
-            overlay.color = Color.argb(230, 40, 120, 255); overlay.strokeWidth = 1.5f * density; overlay.pathEffect = dash
-            val p = Path(); p.moveTo(pts[0], pts[1]); for (i in 1 until 4) p.lineTo(pts[i * 2], pts[i * 2 + 1]); p.close()
-            c.drawPath(p, overlay); overlay.pathEffect = null
+            overlay.pathEffect = null
+            overlay.color = Color.argb(70, 0, 0, 0); overlay.strokeWidth = 1f * density
+            val big = (width + height) * 2f
+            for (i in 0 until 4) {
+                val ax = pts[i * 2]; val ay = pts[i * 2 + 1]; val bx = pts[((i + 1) % 4) * 2]; val by = pts[((i + 1) % 4) * 2 + 1]
+                val len = max(hypot(bx - ax, by - ay), 1f)
+                val ux = (bx - ax) / len; val uy = (by - ay) / len
+                c.drawLine(ax - ux * big, ay - uy * big, bx + ux * big, by + uy * big, overlay)
+            }
+            overlay.color = Color.argb(200, 30, 30, 30); overlay.strokeWidth = 1.2f * density
             overlayFill.color = Color.WHITE
-            val hs = 9f * density
-            // scale handle (corner 2), rotate handle (above top edge)
-            c.drawCircle(pts[4], pts[5], hs, overlayFill); c.drawCircle(pts[4], pts[5], hs, overlay)
-            val (rx, ry) = rotateHandle(pts)
-            c.drawLine((pts[0] + pts[2]) / 2, (pts[1] + pts[3]) / 2, rx, ry, overlay)
-            c.drawCircle(rx, ry, hs, overlayFill); c.drawCircle(rx, ry, hs, overlay)
+            val hs = 6.5f * density
+            for (i in 0 until 4) { c.drawCircle(pts[i * 2], pts[i * 2 + 1], hs, overlayFill); c.drawCircle(pts[i * 2], pts[i * 2 + 1], hs, overlay) }
+            if (selRotateOn) {
+                val (rx, ry) = rotateHandle(pts)
+                c.drawLine((pts[0] + pts[2]) / 2, (pts[1] + pts[3]) / 2, rx, ry, overlay)
+                c.drawCircle(rx, ry, hs, overlayFill); c.drawCircle(rx, ry, hs, overlay)
+            }
+            var mnx = Float.MAX_VALUE; var mxx = -Float.MAX_VALUE; var mny = Float.MAX_VALUE; var mxy = -Float.MAX_VALUE
+            for (i in 0 until 4) { mnx = min(mnx, pts[i * 2]); mxx = max(mxx, pts[i * 2]); mny = min(mny, pts[i * 2 + 1]); mxy = max(mxy, pts[i * 2 + 1]) }
+            selBox.set(mnx, mny, mxx, mxy)
+            listener?.onSelectionGeometry(selBox, (abs(selSx) * 100).roundToInt(), (abs(selSy) * 100).roundToInt(), Math.toDegrees(selRot).roundToInt())
         }
         // eraser cursor
         if (mode == Mode.ERASE) {
@@ -550,7 +571,9 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         if (fingers.size == 1 && mode == Mode.IDLE) {
             actorId = p.id
             if (selection.isNotEmpty() && beginSelectionManip(p.x, p.y)) return
-            if (fingersDraw() || tool == Tool.PAN || tool == Tool.EYEDROPPER || (tool == Tool.LASSO && !prefs.penDetected) || (tool == Tool.ERASER && !prefs.penDetected)) {
+            if (prefs.fingerSelect && !fingersDraw()) {
+                startToolAction(Tool.LASSO, ev, idx, p, finger = true)
+            } else if (fingersDraw() || tool == Tool.PAN || tool == Tool.EYEDROPPER || (tool == Tool.LASSO && !prefs.penDetected) || (tool == Tool.ERASER && !prefs.penDetected)) {
                 startToolAction(tool, ev, idx, p, finger = true)
             } else {
                 mode = Mode.FINGER_PENDING
@@ -748,7 +771,7 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
             rebaseline(f); return
         }
         gestureActive = true
-        val scaleF = (dist / gDist).toDouble()
+        val scaleF = if (prefs.zoomEnabled) (dist / gDist).toDouble() else 1.0
         var dAng = 0.0
         if (prefs.rotateEnabled && f.size == 2) {
             var d = (angle - gAngle).toDouble()
@@ -778,6 +801,11 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
     }
 
     private fun endGesture() {
+        if (gestureActive && prefs.zoomSnap && abs(cam.scale - 1.0) < 0.07 && cam.scale != 1.0) {
+            gestureActive = false
+            animateTo(cam.cx, cam.cy, 1.0, cam.rotation)
+            return
+        }
         if (gestureActive) {
             gestureActive = false
             invalidateContent() // re-record crisp display list at the final camera
@@ -796,9 +824,10 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         when (t) {
             Tool.BRUSH -> beginStroke(ev, idx, finger)
             Tool.ERASER -> {
-                if (doc.active().locked) { mode = Mode.CONSUMED; return }
+                val targets = eraseTargets()
+                if (targets.isEmpty()) { mode = Mode.CONSUMED; return }
                 mode = Mode.ERASE
-                eraseBefore = ArrayList(doc.active().strokes)
+                eraseBefore = HashMap<com.akshit.folio.model.Layer, ArrayList<Stroke>>().also { m -> targets.forEach { m[it] = ArrayList(it.strokes) } }
                 eraseX = p.x; eraseY = p.y
                 eraseAt(p.x, p.y)
             }
@@ -834,7 +863,8 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
     // ------------------------------------------------------------------ strokes
     private fun beginStroke(ev: MotionEvent, idx: Int, finger: Boolean) {
         removeCallbacks(refineRunnable) // still writing
-        if (doc.active().locked || !doc.active().visible) { mode = Mode.CONSUMED; return }
+        val target = if (prefs.autoLayers) doc.layers.firstOrNull { it.name == brush.type.label } else doc.active()
+        if (target != null && (target.locked || !target.visible)) { mode = Mode.CONSUMED; return }
         mode = Mode.DRAW
         activeIsFinger = finger
         activeStart = SystemClock.uptimeMillis()
@@ -1001,8 +1031,24 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         val finalBrush = if (shaped != null) (liveBrush ?: brush).copy() else brush.copy()
         val fin = Stroke(finalBrush, s.color, s.width, s.ox, s.oy)
         fin.pts = s.pts; fin.n = s.n
-        val layer = doc.active()
-        history.run(LambdaCommand({ layer.strokes.add(fin) }, { layer.strokes.remove(fin) }))
+        val layer: com.akshit.folio.model.Layer
+        if (prefs.autoLayers) {
+            // Automatic sorting: every tool draws into its own layer (Pen, Pencil, Watercolor...)
+            val name = finalBrush.type.label
+            val existing = doc.layers.firstOrNull { it.name == name }
+            layer = existing ?: com.akshit.folio.model.Layer(name)
+            val created = existing == null
+            history.run(LambdaCommand({
+                if (created && !doc.layers.contains(layer)) doc.layers.add(layer)
+                layer.strokes.add(fin); doc.activeLayer = doc.layers.indexOf(layer)
+            }, {
+                layer.strokes.remove(fin)
+                if (created && layer.strokes.isEmpty()) { doc.layers.remove(layer); doc.activeLayer = doc.activeLayer.coerceIn(0, doc.layers.size - 1) }
+            }))
+        } else {
+            layer = doc.active()
+            history.run(LambdaCommand({ layer.strokes.add(fin) }, { layer.strokes.remove(fin) }))
+        }
         statStrokesCommitted++
         if (shaped == null && prefs.refineAuto && isWritingBrush(fin)) queueForRefine(layer, fin)
         shaped = null; liveBrush = null
@@ -1086,15 +1132,21 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
 
     fun refineSelection(): Boolean {
         if (selection.isEmpty()) return false
-        val ok = refineStrokes(doc.active(), selection.toList())
+        val layer = doc.layers.firstOrNull { l -> l.strokes.any { it in selectionSet } } ?: return false
+        val ok = refineStrokes(layer, selection.filter { s -> layer.strokes.any { it === s } })
         clearSelection()
         return ok
     }
 
     // ------------------------------------------------------------------ eraser
+    private fun eraseTargets(): List<com.akshit.folio.model.Layer> =
+        if (prefs.autoLayers) doc.layers.filter { it.visible && !it.locked } else listOf(doc.active()).filter { !it.locked && it.visible }
+
     private fun eraseAt(sx: Float, sy: Float) {
-        val layer = doc.active()
-        if (layer.locked) return
+        for (layer in eraseTargets()) eraseIn(layer, sx, sy)
+    }
+
+    private fun eraseIn(layer: com.akshit.folio.model.Layer, sx: Float, sy: Float) {
         val wx = cam.screenToWorldX(sx, sy); val wy = cam.screenToWorldY(sx, sy)
         val r = eraserSizePx / 2f / cam.scale
         var changed = false
@@ -1157,10 +1209,11 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
     private fun finishErase() {
         val before = eraseBefore ?: return
         eraseBefore = null
-        val layer = doc.active()
-        if (before.size != layer.strokes.size || before.indices.any { before[it] !== layer.strokes[it] }) {
-            history.push(SnapshotCommand(layer, before, ArrayList(layer.strokes)))
+        val cmds = ArrayList<com.akshit.folio.model.Command>()
+        for ((layer, b) in before) {
+            if (b.size != layer.strokes.size || b.indices.any { b[it] !== layer.strokes[it] }) cmds.add(SnapshotCommand(layer, b, ArrayList(layer.strokes)))
         }
+        if (cmds.isNotEmpty()) history.push(com.akshit.folio.model.Composite(cmds))
         invalidateContent()
     }
 
@@ -1191,20 +1244,38 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
     private fun finishLasso() {
         val pts = lassoPts.toFloatArray()
         lassoPts.clear(); lassoPath.reset()
-        if (pts.size < 6) { clearSelection(); return }
-        val layer = doc.active()
         selection.clear(); selectionSet.clear()
-        for (s in layer.strokes) {
-            var inside = 0; var total = 0
-            val stride = max(1, s.n / 40)
-            var i = 0
-            while (i < s.n) {
-                val sx = cam.worldToScreenX(s.ox + s.x(i), s.oy + s.y(i)); val sy = cam.worldToScreenY(s.ox + s.x(i), s.oy + s.y(i))
-                if (pointInPoly(sx, sy, pts)) inside++
-                total++
-                i += stride
+        var minX = Float.MAX_VALUE; var maxX = -Float.MAX_VALUE; var minY = Float.MAX_VALUE; var maxY = -Float.MAX_VALUE
+        for (i in 0 until pts.size / 2) { minX = min(minX, pts[i * 2]); maxX = max(maxX, pts[i * 2]); minY = min(minY, pts[i * 2 + 1]); maxY = max(maxY, pts[i * 2 + 1]) }
+        val isTap = pts.size < 6 || (maxX - minX < 14 * density && maxY - minY < 14 * density)
+        val layers = doc.layers.filter { it.visible && !it.locked }
+        if (isTap && pts.size >= 2) {
+            // tap: pick the top-most stroke under the finger / pen
+            val tx = pts[0]; val ty = pts[1]
+            var best: Stroke? = null
+            for (l in layers) for (s in l.strokes) {
+                val tol = max(14f * density, (s.width * cam.scale).toFloat() / 2 + 6 * density)
+                var i = 0
+                while (i < s.n) {
+                    val sx = cam.worldToScreenX(s.ox + s.x(i), s.oy + s.y(i)); val sy = cam.worldToScreenY(s.ox + s.x(i), s.oy + s.y(i))
+                    if (hypot(sx - tx, sy - ty) < tol) { best = s; break }
+                    i++
+                }
             }
-            if (total > 0 && inside * 2 >= total) { selection.add(s); selectionSet.add(s) }
+            best?.let { selection.add(it); selectionSet.add(it) }
+        } else if (!isTap) {
+            for (l in layers) for (s in l.strokes) {
+                var inside = 0; var total = 0
+                val stride = max(1, s.n / 40)
+                var i = 0
+                while (i < s.n) {
+                    val sx = cam.worldToScreenX(s.ox + s.x(i), s.oy + s.y(i)); val sy = cam.worldToScreenY(s.ox + s.x(i), s.oy + s.y(i))
+                    if (pointInPoly(sx, sy, pts)) inside++
+                    total++
+                    i += stride
+                }
+                if (total > 0 && inside * 2 >= total) { selection.add(s); selectionSet.add(s) }
+            }
         }
         resetSelTransform()
         invalidateContent()
@@ -1224,12 +1295,13 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
 
     fun selectAllInLayer() {
         selection.clear(); selectionSet.clear()
-        selection.addAll(doc.active().strokes); selectionSet.addAll(selection)
+        for (l in doc.layers) if (l.visible && !l.locked) selection.addAll(l.strokes)
+        selectionSet.addAll(selection)
         resetSelTransform(); invalidateContent(); listener?.onSelectionChanged(selection.size)
     }
 
     private fun resetSelTransform() {
-        selTx = 0.0; selTy = 0.0; selScale = 1.0; selRot = 0.0
+        selTx = 0.0; selTy = 0.0; selScale = 1.0; selRot = 0.0; selSx = 1.0; selSy = 1.0
         val b = SceneRenderer.contentBounds(doc, selection)
         if (b != null) { selBounds = b; selPivotX = (b[0] + b[2]) / 2; selPivotY = (b[1] + b[3]) / 2 }
     }
@@ -1243,13 +1315,13 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
 
     /** world -> transformed world for the live selection transform */
     private fun selMapX(x: Double, y: Double): Double {
-        val dx = x - selPivotX; val dy = y - selPivotY
-        return selPivotX + selScale * (dx * kotlin.math.cos(selRot) - dy * kotlin.math.sin(selRot)) + selTx
+        val dx = (x - selPivotX) * selSx; val dy = (y - selPivotY) * selSy
+        return selPivotX + (dx * kotlin.math.cos(selRot) - dy * kotlin.math.sin(selRot)) + selTx
     }
 
     private fun selMapY(x: Double, y: Double): Double {
-        val dx = x - selPivotX; val dy = y - selPivotY
-        return selPivotY + selScale * (dx * kotlin.math.sin(selRot) + dy * kotlin.math.cos(selRot)) + selTy
+        val dx = (x - selPivotX) * selSx; val dy = (y - selPivotY) * selSy
+        return selPivotY + (dx * kotlin.math.sin(selRot) + dy * kotlin.math.cos(selRot)) + selTy
     }
 
     private fun computeSelExtra() {
@@ -1291,13 +1363,16 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
 
     private fun beginSelectionManip(x: Float, y: Float): Boolean {
         val pts = selectionScreenCorners()
-        val hs = 22f * density
+        val hs = 24f * density
         val (rx, ry) = rotateHandle(pts)
         selStartX = x; selStartY = y
         selStartScale = selScale; selStartRot = selRot; selStartTx = selTx; selStartTy = selTy
+        selStartSx = selSx; selStartSy = selSy
+        var corner = -1
+        for (i in 0 until 4) if (hypot(x - pts[i * 2], y - pts[i * 2 + 1]) < hs) corner = i
         mode = when {
-            hypot(x - pts[4], y - pts[5]) < hs -> Mode.SEL_SCALE
-            hypot(x - rx, y - ry) < hs -> Mode.SEL_ROTATE
+            corner >= 0 -> { selCorner = corner; Mode.SEL_SCALE }
+            selRotateOn && hypot(x - rx, y - ry) < hs -> Mode.SEL_ROTATE
             pointInPoly(x, y, pts) -> Mode.SEL_MOVE
             else -> { clearSelection(); return false }
         }
@@ -1314,9 +1389,19 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
                 selTx = selStartTx + (w1x - w0x); selTy = selStartTy + (w1y - w0y)
             }
             Mode.SEL_SCALE -> {
-                val d0 = max(hypot(selStartX - pcx, selStartY - pcy), 1f)
-                val d1 = hypot(x - pcx, y - pcy)
-                selScale = (selStartScale * d1 / d0).coerceIn(0.01, 100.0)
+                if (selStretch) {
+                    // project onto the selection's own axes
+                    val ang = -(selRot + cam.rotation)
+                    val c = kotlin.math.cos(ang); val sn = kotlin.math.sin(ang)
+                    val v0x = (selStartX - pcx) * c - (selStartY - pcy) * sn; val v0y = (selStartX - pcx) * sn + (selStartY - pcy) * c
+                    val v1x = (x - pcx) * c - (y - pcy) * sn; val v1y = (x - pcx) * sn + (y - pcy) * c
+                    if (abs(v0x) > 4) selSx = (selStartSx * v1x / v0x).let { if (abs(it) < 0.02) 0.02 * kotlin.math.sign(it + 1e-9) else it }.coerceIn(-100.0, 100.0)
+                    if (abs(v0y) > 4) selSy = (selStartSy * v1y / v0y).let { if (abs(it) < 0.02) 0.02 * kotlin.math.sign(it + 1e-9) else it }.coerceIn(-100.0, 100.0)
+                } else {
+                    val d0 = max(hypot(selStartX - pcx, selStartY - pcy), 1f)
+                    val f = (hypot(x - pcx, y - pcy) / d0).toDouble()
+                    selSx = (selStartSx * f).coerceIn(-100.0, 100.0); selSy = (selStartSy * f).coerceIn(-100.0, 100.0)
+                }
             }
             Mode.SEL_ROTATE -> {
                 val a0 = atan2(selStartY - pcy, selStartX - pcx); val a1 = atan2(y - pcy, x - pcx)
@@ -1331,67 +1416,95 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         invalidate()
     }
 
+    /** Applies [edit] to the layers that hold the selection and records one undo step. */
+    private fun editSelectionLayers(edit: (com.akshit.folio.model.Layer) -> Unit) {
+        val layers = doc.layers.filter { l -> l.strokes.any { it in selectionSet } }
+        val befores = layers.map { ArrayList(it.strokes) }
+        layers.forEach(edit)
+        history.push(com.akshit.folio.model.Composite(layers.mapIndexed { i, l -> SnapshotCommand(l, befores[i], ArrayList(l.strokes)) }))
+    }
+
     private fun commitSelectionTransform() {
-        if (selTx == 0.0 && selTy == 0.0 && selScale == 1.0 && selRot == 0.0) return
-        val layer = doc.active()
-        val before = ArrayList(layer.strokes)
-        val cosR = kotlin.math.cos(selRot).toFloat(); val sinR = kotlin.math.sin(selRot).toFloat(); val sc = selScale.toFloat()
+        if (selTx == 0.0 && selTy == 0.0 && selSx == 1.0 && selSy == 1.0 && selRot == 0.0) return
+        val cosR = kotlin.math.cos(selRot).toFloat(); val sinR = kotlin.math.sin(selRot).toFloat()
+        val sx = selSx.toFloat(); val sy = selSy.toFloat()
         val replaced = HashMap<Stroke, Stroke>()
         for (s in selection) {
             val ns = s.duplicate()
             ns.ox = selMapX(s.ox, s.oy); ns.oy = selMapY(s.ox, s.oy)
             for (i in 0 until ns.n) {
-                val x = s.x(i); val y = s.y(i)
-                ns.setXY(i, sc * (x * cosR - y * sinR), sc * (x * sinR + y * cosR))
+                val x = s.x(i) * sx; val y = s.y(i) * sy
+                ns.setXY(i, x * cosR - y * sinR, x * sinR + y * cosR)
             }
-            ns.width = s.width * sc
+            ns.width = s.width * kotlin.math.sqrt(abs(sx * sy))
             ns.invalidate()
             replaced[s] = ns
         }
-        for (i in layer.strokes.indices) replaced[layer.strokes[i]]?.let { layer.strokes[i] = it }
-        history.push(SnapshotCommand(layer, before, ArrayList(layer.strokes)))
+        editSelectionLayers { layer -> for (i in layer.strokes.indices) replaced[layer.strokes[i]]?.let { layer.strokes[i] = it } }
         val newSel = selection.map { replaced[it] ?: it }
         selection.clear(); selection.addAll(newSel); selectionSet.clear(); selectionSet.addAll(newSel)
         resetSelTransform()
         invalidateContent()
     }
 
+    fun flipSelection(horizontal: Boolean = true) {
+        if (selection.isEmpty()) return
+        if (horizontal) selSx = -selSx else selSy = -selSy
+        commitSelectionTransform()
+    }
+
+    fun zoomToSelection() {
+        val b = SceneRenderer.contentBounds(doc, selection) ?: return
+        val bw = (b[2] - b[0]).coerceAtLeast(1e-9); val bh = (b[3] - b[1]).coerceAtLeast(1e-9)
+        animateTo((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, (min(width / bw, height / bh) * 0.6).coerceIn(MIN_SCALE, MAX_SCALE), cam.rotation)
+    }
+
+    fun lockSelectionLayers() {
+        for (l in doc.layers) if (l.strokes.any { it in selectionSet }) l.locked = true
+        clearSelection(); listener?.onHistoryChanged()
+    }
+
+    fun selectionCount() = selection.size
+
     fun deleteSelection() {
         if (selection.isEmpty()) return
-        val layer = doc.active(); val before = ArrayList(layer.strokes)
-        layer.strokes.removeAll(selectionSet)
-        history.push(SnapshotCommand(layer, before, ArrayList(layer.strokes)))
+        editSelectionLayers { it.strokes.removeAll(selectionSet) }
         clearSelection()
     }
 
     fun duplicateSelection() {
         if (selection.isEmpty()) return
-        val layer = doc.active(); val before = ArrayList(layer.strokes)
         val off = 24 / cam.scale
-        val copies = selection.map { it.duplicate().also { d -> d.ox += off; d.oy += off; d.invalidate() } }
-        layer.strokes.addAll(copies)
-        history.push(SnapshotCommand(layer, before, ArrayList(layer.strokes)))
+        val copies = ArrayList<Stroke>()
+        editSelectionLayers { layer ->
+            val mine = layer.strokes.filter { it in selectionSet }
+            val c = mine.map { it.duplicate().also { d -> d.ox += off; d.oy += off; d.invalidate() } }
+            layer.strokes.addAll(c); copies.addAll(c)
+        }
         selection.clear(); selection.addAll(copies); selectionSet.clear(); selectionSet.addAll(copies)
         resetSelTransform(); invalidateContent(); listener?.onSelectionChanged(selection.size)
     }
 
     fun recolorSelection(c: Int) {
         if (selection.isEmpty()) return
-        val layer = doc.active(); val before = ArrayList(layer.strokes)
         val replaced = HashMap<Stroke, Stroke>()
         for (s in selection) replaced[s] = s.duplicate().also { it.color = c }
-        for (i in layer.strokes.indices) replaced[layer.strokes[i]]?.let { layer.strokes[i] = it }
-        history.push(SnapshotCommand(layer, before, ArrayList(layer.strokes)))
+        editSelectionLayers { layer -> for (i in layer.strokes.indices) replaced[layer.strokes[i]]?.let { layer.strokes[i] = it } }
         val newSel = selection.map { replaced[it] ?: it }
         selection.clear(); selection.addAll(newSel); selectionSet.clear(); selectionSet.addAll(newSel)
         invalidateContent()
     }
 
+    /** Keeps only selected strokes matching a predicate (selection filters). */
+    fun filterSelection(keep: (Stroke) -> Boolean) {
+        val k = selection.filter(keep)
+        selection.clear(); selection.addAll(k); selectionSet.clear(); selectionSet.addAll(k)
+        resetSelTransform(); invalidateContent(); listener?.onSelectionChanged(selection.size)
+    }
+
     fun bringSelectionToFront() {
         if (selection.isEmpty()) return
-        val layer = doc.active(); val before = ArrayList(layer.strokes)
-        layer.strokes.removeAll(selectionSet); layer.strokes.addAll(selection)
-        history.push(SnapshotCommand(layer, before, ArrayList(layer.strokes)))
+        editSelectionLayers { layer -> val mine = layer.strokes.filter { it in selectionSet }; layer.strokes.removeAll(selectionSet); layer.strokes.addAll(mine) }
         invalidateContent()
     }
 

@@ -13,7 +13,6 @@ import com.akshit.folio.core.Prefs
 import com.akshit.folio.core.ShapeRecognizer
 import com.akshit.folio.model.Layer
 import com.akshit.folio.model.Pattern
-import com.akshit.folio.ui.ColorPickerPanel
 import com.akshit.folio.view.CanvasView
 import kotlin.math.PI
 import kotlin.math.abs
@@ -56,6 +55,8 @@ class DemoDriver(private val a: CanvasActivity) {
         c.debugTouches = true
         a.prefs.put(Prefs.K_SHAPE_MS, 450)
         a.prefs.put(Prefs.K_REFINE, false) // only the handwriting scenario refines
+        a.prefs.put(Prefs.K_AUTO_LAYERS, false) // deterministic layer counts for the checks
+        a.showLayers(true)
         when (which) {
             "brushes" -> brushes()
             "palm" -> palm()
@@ -109,7 +110,7 @@ class DemoDriver(private val a: CanvasActivity) {
         val n = BrushType.entries.size
         val cols = if (w > hh) 2 else 1
         val rows = (n + cols - 1) / cols
-        val left = 300f * d; val right = w - 140f * d
+        val left = 300f * d; val right = w - 40f * d
         val top = 90f * d; val bottom = hh - 40f * d
         val colW = (right - left) / cols
         val rowH = (bottom - top) / rows
@@ -142,26 +143,27 @@ class DemoDriver(private val a: CanvasActivity) {
     }
 
     private fun colors() {
-        step("Color wheel · sliders · palettes")
-        at(50) { a.togglePanel("color") }
+        step("Color fan · palette · HSL · RGB")
+        at(50) { a.toggleColorFan() }
         pause(700)
-        shot("02_color_wheel")
-        // drag on the wheel's hue ring through the real panel is fiddly to synthesise; drive the tabs
-        at(10) { (a.findPanel() as? ColorPickerPanel)?.let { p -> tabClick(p, 1) } }
-        pause(500)
-        shot("03_color_sliders")
-        at(10) { (a.findPanel() as? ColorPickerPanel)?.let { p -> tabClick(p, 2) } }
-        pause(500)
-        shot("04_color_palettes")
-        at(10) { (a.findPanel() as? ColorPickerPanel)?.setColor(0xFF1E88E5.toInt()) }
+        shot("02_color_fan_palette")
+        at(10) { a.colorFan?.let { it.mode = 1; it.invalidate() } }
+        pause(400)
+        shot("03_color_fan_hsl")
+        at(10) { a.colorFan?.let { it.mode = 2; it.invalidate() } }
+        pause(400)
+        shot("04_color_fan_rgb")
+        at(10) { a.setColor(0xFF1E88E5.toInt()) }
         at(200) { check("color.applied", c.color == 0xFF1E88E5.toInt(), "color=#${Integer.toHexString(c.color)}") }
-        at(50) { a.closePanel() }
-    }
-
-    private fun tabClick(p: ColorPickerPanel, i: Int) {
-        // tabs row is the 3rd child of the body (preview, hex row, tabs)
-        val tabs = p.body.getChildAt(2) as android.widget.LinearLayout
-        tabs.getChildAt(i).performClick()
+        at(50) { a.closeColorFan() }
+        // wheel readouts open slider popups
+        at(50) { a.openPopup("size") }
+        pause(500)
+        shot("04b_wheel_size_popup")
+        at(50) { a.openPopup("opacity") }
+        pause(400)
+        shot("04c_wheel_opacity_popup")
+        at(50) { a.closePopup() }
     }
 
     private fun brushPro() {
@@ -415,11 +417,43 @@ class DemoDriver(private val a: CanvasActivity) {
         pause(300)
         at(10) { check("layers.added", c.doc.layers.size == 2, "layers=${c.doc.layers.size}") }
         at(10) { a.selectSlot(9, openSettingsIfSame = false); a.setColor(0xFF1E88E5.toInt()) }
-        penPath((0..40).map { j -> P(0, w * 0.2f + j * w * 0.012f, hh * 0.8f + (sin(j / 6.0) * 20 * d).toFloat(), pressure = 0.8f) }, 8)
+        penPath((0..40).map { j -> P(0, w * 0.35f + j * w * 0.012f, hh * 0.8f + (sin(j / 6.0) * 20 * d).toFloat(), pressure = 0.8f) }, 8)
         at(50) { a.closePanel(); a.togglePanel("layers") }
         pause(500)
         shot("25_layers_panel")
         at(50) { a.closePanel() }
+        autoLayers()
+        settingsSheet()
+    }
+
+    /** Automatic sorting: each tool lands on its own layer, like the reference app. */
+    private fun autoLayers() {
+        step("Automatic layer sorting")
+        resetDoc(Pattern.DOTS)
+        at(20) { a.prefs.put(Prefs.K_AUTO_LAYERS, true); c.doc.layers.clear(); c.doc.layers.add(Layer("Layer 1")); a.showLayers(true) }
+        val tools = listOf(0 to 0xFF1B1B1F.toInt(), 3 to 0xFFE5534B.toInt(), 9 to 0xFF1E88E5.toInt(), 2 to 0xFF3A3A3A.toInt())
+        for ((k, pair) in tools.withIndex()) {
+            at(20) { a.selectSlot(pair.first, openSettingsIfSame = false); a.setColor(pair.second) }
+            penPath((0..30).map { j -> P(0, w * 0.38f + j * w * 0.012f, hh * (0.3f + k * 0.12f) + (sin(j / 4.0) * 14 * d).toFloat(), pressure = 0.7f) }, 7)
+        }
+        pause(700)
+        at(10) {
+            val names = c.doc.layers.map { it.name }
+            check("layers.autoSorted", names.containsAll(listOf("Pen", "Marker", "Watercolor", "Pencil")), "layers=$names")
+        }
+        shot("25b_layers_automatic_sorting")
+        at(10) { a.prefs.put(Prefs.K_AUTO_LAYERS, false) }
+    }
+
+    private fun settingsSheet() {
+        step("Settings sheet")
+        at(50) { a.toggleSheet(0) }
+        pause(600)
+        shot("25c_settings_workspace")
+        at(50) { a.closeSheet(); a.toggleSheet(1) }
+        pause(600)
+        shot("25d_settings_interaction")
+        at(50) { a.closeSheet() }
     }
 
     /** Messy line of handwriting: uphill baseline, bouncing words, uneven gaps, mixed slant. */

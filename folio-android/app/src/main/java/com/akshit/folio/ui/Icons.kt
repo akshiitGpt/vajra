@@ -58,6 +58,22 @@ object Icons {
         "sparkle" to "M12 3 L13.6 9.2 L20 11 L13.6 12.8 L12 19 L10.4 12.8 L4 11 L10.4 9.2 Z M18.5 3.5 V7 M16.8 5.2 H20.2",
         "ruler" to "M3 15 L15 3 L21 9 L9 21 Z M7 13 L9 15 M10 10 L12 12 M13 7 L15 9",
         "wheel" to "O 12 12 8.5 O 12 12 3 M12 3.5 V9 M12 15 V20.5 M3.5 12 H9 M15 12 H20.5",
+        "undo_solid" to "M10 4.5 L3.5 10 L10 15.5 M4 10 C12 10 18.5 11 20.5 19.5",
+        "redo_solid" to "M14 4.5 L20.5 10 L14 15.5 M20 10 C12 10 5.5 11 3.5 19.5",
+        "apps" to "M4 4 H10.5 V10.5 H4 Z M13.5 4 H20 V10.5 H13.5 Z M4 13.5 H10.5 V20 H4 Z M13.5 13.5 H20 V20 H13.5 Z",
+        "dots9" to "O 5 5 1.3 O 12 5 1.3 O 19 5 1.3 O 5 12 1.3 O 12 12 1.3 O 19 12 1.3 O 5 19 1.3 O 12 19 1.3 O 19 19 1.3",
+        "stack" to "M4 6 H20 M3 12 H21 M4 18 H20",
+        "shapes" to "M7.5 3.5 L12 11 H3 Z O 16 15.5 4.5",
+        "help" to "M8.5 8.5 C8.5 3.5 16 3.5 16 8.5 C16 11.5 12.2 11.5 12.2 15 M12.2 19 V19.5",
+        "lockc" to "M6 11 H18 V20 H6 Z M8.5 11 V8 C8.5 4 15.5 4 15.5 8 V11",
+        "search" to "O 10.5 10.5 6 M15 15 L20 20",
+        "group" to "M4 4 H9 V9 H4 Z M15 4 H20 V9 H15 Z M4 15 H9 V20 H4 Z M15 15 H20 V20 H15 Z",
+        "send" to "M4 6 L20 12 L4 18 Z M4 12 H12",
+        "rotateoff" to "M18 12 C18 15.5 15.3 18.5 12 18.5 C8.7 18.5 6 15.5 6 12 C6 8.5 8.7 5.5 12 5.5 M12 3 L14.5 5.5 L12 8 M4 20 L20 4",
+        "stretch" to "M5 19 L19 5 M5 19 L5 13 M5 19 L11 19 M19 5 L13 5 M19 5 L19 11",
+        "filter" to "M4 5 H20 L14 12.5 V19 L10 17 V12.5 Z",
+        "cursor" to "M7 3.5 L7 19 L11 15 L14 21 L16.5 20 L13.5 14 L19 14 Z",
+        "move4" to "M12 3 V21 M3 12 H21 M12 3 L9.5 5.5 M12 3 L14.5 5.5 M12 21 L9.5 18.5 M12 21 L14.5 18.5 M3 12 L5.5 9.5 M3 12 L5.5 14.5 M21 12 L18.5 9.5 M21 12 L18.5 14.5",
         "flip" to "M12 3 V21 M9 7 L4 17 H9 Z M15 7 L20 17 H15 Z",
     )
 
@@ -92,6 +108,7 @@ object Icons {
 }
 
 class IconDrawable(private val name: String, var color: Int, private val strokeDp: Float = 1.8f) : Drawable() {
+    private val filled = name in setOf("apps", "dots9", "lockc", "cursor")
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
     }
@@ -104,6 +121,7 @@ class IconDrawable(private val name: String, var color: Int, private val strokeD
         m.setScale(s, s); m.postTranslate(b.left + (b.width() - 24 * s) / 2, b.top + (b.height() - 24 * s) / 2)
         tmp.set(Icons.path(name)); tmp.transform(m)
         paint.color = color
+        paint.style = if (filled) Paint.Style.FILL_AND_STROKE else Paint.Style.STROKE
         paint.strokeWidth = strokeDp * s
         c.drawPath(tmp, paint)
     }

@@ -372,6 +372,11 @@ class LayersPanel(ctx: Context, private val canvas: CanvasView, private val onCh
 
     private fun changed() { canvas.invalidateContent(); onChanged(); build() }
 
+    fun duplicateActive() = duplicate()
+    fun mergeActiveDown() = mergeDown()
+    fun moveActive(dir: Int) = move(dir)
+    fun deleteActive() = delete()
+
     private fun addLayer() {
         val d = doc()
         val l = Layer("Layer ${d.layers.size + 1}")

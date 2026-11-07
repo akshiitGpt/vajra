@@ -84,6 +84,12 @@ class Prefs(ctx: Context) {
     val showZoom get() = b(K_SHOW_ZOOM, true)
     val autosaveSec get() = i(K_AUTOSAVE, 5)
 
+    // ---------------- workspace behaviour
+    val autoLayers get() = b(K_AUTO_LAYERS, true)
+    val zoomEnabled get() = b(K_ZOOM, true)
+    val zoomSnap get() = b(K_ZOOM_SNAP, true)
+    val fingerSelect get() = b(K_FINGER_SELECT, false)
+
     // ---------------- handwriting refinement
     val refineAuto get() = b(K_REFINE, true)
     val refineStrength get() = f(K_REFINE_STRENGTH, 0.7f)
@@ -146,6 +152,10 @@ class Prefs(ctx: Context) {
         const val K_SHOW_ZOOM = "show_zoom"
         const val K_AUTOSAVE = "autosave"
         const val K_REFINE = "refine_auto"
+        const val K_AUTO_LAYERS = "auto_layers"
+        const val K_ZOOM = "zoom_enabled"
+        const val K_ZOOM_SNAP = "zoom_snap"
+        const val K_FINGER_SELECT = "finger_select"
         const val K_REFINE_STRENGTH = "refine_strength"
         const val K_REFINE_DELAY = "refine_delay"
 

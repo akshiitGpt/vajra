@@ -6,6 +6,7 @@ import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.RectF
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -14,6 +15,7 @@ import android.os.Looper
 import android.provider.MediaStore
 import android.view.Gravity
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -24,22 +26,30 @@ import android.widget.TextView
 import android.widget.Toast
 import com.akshit.folio.brush.BrushSpec
 import com.akshit.folio.brush.BrushType
+import com.akshit.folio.brush.RenderKind
 import com.akshit.folio.core.GestureAction
 import com.akshit.folio.core.Prefs
 import com.akshit.folio.core.ShapeRecognizer
 import com.akshit.folio.model.Document
 import com.akshit.folio.model.DocumentStore
+import com.akshit.folio.model.LambdaCommand
+import com.akshit.folio.model.Layer
 import com.akshit.folio.render.SvgExporter
 import com.akshit.folio.ui.BackgroundPanel
 import com.akshit.folio.ui.BrushPanel
-import com.akshit.folio.ui.ColorPickerPanel
+import com.akshit.folio.ui.ColorFanView
 import com.akshit.folio.ui.IconButton
+import com.akshit.folio.ui.LayersList
 import com.akshit.folio.ui.LayersPanel
 import com.akshit.folio.ui.Panel
+import com.akshit.folio.ui.SettingsSheet
 import com.akshit.folio.ui.ToolWheelView
 import com.akshit.folio.ui.UI
+import com.akshit.folio.ui.WheelPopup
 import com.akshit.folio.ui.panelLayoutParams
 import com.akshit.folio.view.CanvasView
+import kotlin.math.ln
+import kotlin.math.exp
 
 class CanvasActivity : Activity(), CanvasView.Listener {
     lateinit var prefs: Prefs
@@ -48,37 +58,42 @@ class CanvasActivity : Activity(), CanvasView.Listener {
     lateinit var doc: Document
 
     private lateinit var root: FrameLayout
-    private lateinit var statusBar: LinearLayout
-    private lateinit var wheel: ToolWheelView
-    private lateinit var wheelGroup: LinearLayout
+    private lateinit var statusLeft: LinearLayout
+    private lateinit var statusRight: LinearLayout
+    private lateinit var zoomText: TextView
+    private lateinit var rotText: TextView
+    private lateinit var lockBtn: IconButton
+    lateinit var wheel: ToolWheelView
+    private lateinit var wheelGroup: FrameLayout
     private var barGroup: View? = null
     private var barSlots = ArrayList<com.akshit.folio.ui.SlotView>()
     private var miniWheel: ToolWheelView? = null
     private lateinit var precisionBtn: IconButton
     private lateinit var layersBtn: IconButton
-    private lateinit var paperBtn: IconButton
+    private lateinit var libraryBtn: IconButton
     /** Tools on the wheel rim: 0..12 = brush slots, 100 eraser, 101 select, 102 eyedropper, 103 pan */
     private val wheelTools = ArrayList<Int>()
-    private lateinit var zoomPill: TextView
-    private lateinit var selectionBar: LinearLayout
+    private lateinit var selToolbar: LinearLayout
+    private lateinit var selOptions: LinearLayout
     private lateinit var hint: TextView
     private lateinit var panelHost: FrameLayout
-    private lateinit var undoBtn: IconButton
-    private lateinit var redoBtn: IconButton
     private var currentPanel: Panel? = null
-    private var colorPanel: ColorPickerPanel? = null
+    var popup: View? = null; private set
+    var colorFan: ColorFanView? = null; private set
+    var sheet: SettingsSheet? = null; private set
+    var layersList: LayersList? = null; private set
+    private lateinit var layersHolder: FrameLayout
 
     val slots = ArrayList<BrushSpec>()
     private val slotColors = ArrayList<Int>()
-    private var sidebar: com.akshit.folio.ui.LayerSidebar? = null
-    private lateinit var sidebarHolder: FrameLayout
-    private val sidebarRefresh = Runnable { sidebar?.refresh() }
+    private val layersRefresh = Runnable { layersList?.refresh() }
     var currentSlot = 0; private set
     private var lastSlot = 0
     private var uiHidden = false
     private val handler = Handler(Looper.getMainLooper())
     private val autosave = Runnable { save(false) }
     private var demo: DemoDriver? = null
+    private var selW = 100; private var selH = 100; private var selDeg = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -111,142 +126,238 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         }
     }
 
+    private fun d(v: Float) = UI.dp(this, v)
+    private fun df(v: Float) = UI.dpf(this, v)
+
     // ------------------------------------------------------------------ layout
     /**
-     * Concepts-style workspace:
-     *  - a thin status bar across the top (gallery, title, zoom, Precision / Layers / Paper
-     *    toggles, export, settings)
-     *  - the Tool Wheel: tools on the outer rim, size/opacity/smoothing on the inner ring,
-     *    colour in the centre, undo/redo beside it. Drag it anywhere, pinch to resize, drop it
-     *    on the left/right edge to turn it into a tool bar.
-     *  - a floating, movable Layers menu
+     * Workspace layout:
+     *  - floating status clusters (no bar): ▦ | title · ⋮⋮⋮ precision · ≡ layers · ▲○ library
+     *    on the left; zoom %, rotation lock + angle, Pen Lab, export, settings, help on the right
+     *  - the Tool Wheel (with undo/redo in its rim gap), movable, pinch to resize, dock as bar
+     *  - Layers list under the wheel, selection toolbar + options bar, settings sheet
      */
     private fun buildUi() {
         val dm = resources.displayMetrics
-        fun d(v: Float) = UI.dp(this, v)
         root = FrameLayout(this)
         root.setBackgroundColor(Color.WHITE)
         root.addView(canvas, FrameLayout.LayoutParams(UI.MATCH, UI.MATCH))
-
         loadWheelTools()
 
-        // ---- status bar
-        statusBar = UI.hbox(this)
-        statusBar.setBackgroundColor(0xF7F9F9FA.toInt())
-        statusBar.elevation = UI.dpf(this, 2f)
-        statusBar.setPadding(d(6f), 0, d(6f), 0)
-        statusBar.addView(IconButton(this, "gallery", 42f).apply { setOnClickListener { save(true); finish() } })
-        val title = UI.label(this, doc.name, 14f, UI.TEXT, true).apply {
-            setPadding(d(6f), 0, d(6f), 0); maxWidth = d(200f); maxLines = 1
+        fun cluster(): LinearLayout = UI.hbox(this).apply {
+            background = UI.rounded(0xE6F1F1F1.toInt(), df(10f))
+            setPadding(d(4f), 0, d(4f), 0)
+        }
+        fun sbtn(icon: String, f: () -> Unit) = IconButton(this, icon, 44f, 0xFF262626.toInt()).apply { setOnClickListener { f() } }
+
+        // ---- left status cluster
+        statusLeft = UI.hbox(this)
+        val c1 = cluster()
+        c1.addView(sbtn("apps") { save(true); finish() })
+        c1.addView(View(this).apply { setBackgroundColor(0x33000000) }, LinearLayout.LayoutParams(d(1f), d(22f)).apply { marginStart = d(2f); marginEnd = d(8f) })
+        val title = UI.label(this, doc.name, 16f, 0xFF262626.toInt()).apply {
+            setPadding(0, d(10f), d(12f), d(10f)); maxWidth = d(220f); maxLines = 1
             setOnClickListener { renameDoc(this) }
         }
-        statusBar.addView(title)
-        statusBar.addView(View(this), UI.lp(0, 1, 1f))
-        zoomPill = UI.label(this, "100%", 13f, UI.SUB, true).apply {
-            setPadding(d(12f), d(6f), d(12f), d(6f))
-            background = UI.ripple(this@CanvasActivity, UI.rounded(Color.TRANSPARENT, UI.dpf(this@CanvasActivity, 8f)))
+        c1.addView(title)
+        statusLeft.addView(c1)
+        val c2 = cluster()
+        precisionBtn = sbtn("dots9") { togglePanel("precision") }
+        layersBtn = sbtn("stack") { toggleLayers() }
+        libraryBtn = sbtn("shapes") { togglePanel("library") }
+        c2.addView(precisionBtn); c2.addView(layersBtn); c2.addView(libraryBtn)
+        statusLeft.addView(c2, LinearLayout.LayoutParams(UI.WRAP, UI.WRAP).apply { marginStart = d(10f) })
+        root.addView(statusLeft, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or Gravity.START).apply { topMargin = d(8f); marginStart = d(14f) })
+
+        // ---- right status cluster
+        statusRight = UI.hbox(this)
+        val c3 = cluster()
+        zoomText = UI.label(this, "100%", 14f, 0xFF262626.toInt()).apply {
+            setPadding(d(8f), d(10f), d(4f), d(10f))
             setOnClickListener { canvas.zoomReset() }
             setOnLongClickListener { canvas.zoomFit(); true }
-            visibility = if (prefs.showZoom) View.VISIBLE else View.INVISIBLE
         }
-        statusBar.addView(zoomPill)
-        statusBar.addView(View(this), UI.lp(0, 1, 1f))
-        precisionBtn = IconButton(this, "ruler", 42f).apply { setOnClickListener { togglePanel("precision") } }
-        layersBtn = IconButton(this, "layers", 42f).apply { setOnClickListener { toggleSidebar() } }
-        paperBtn = IconButton(this, "grid", 42f).apply { setOnClickListener { togglePanel("bg") } }
-        for (b in listOf(precisionBtn, layersBtn, paperBtn)) statusBar.addView(b)
-        statusBar.addView(IconButton(this, "export", 42f).apply { setOnClickListener { showExport() } })
-        statusBar.addView(IconButton(this, "penlab", 42f).apply { setOnClickListener { startActivity(Intent(this@CanvasActivity, PenLabActivity::class.java)) } })
-        statusBar.addView(IconButton(this, "settings", 42f).apply { setOnClickListener { startActivity(Intent(this@CanvasActivity, SettingsActivity::class.java)) } })
-        root.addView(statusBar, FrameLayout.LayoutParams(UI.MATCH, d(48f), Gravity.TOP))
+        lockBtn = IconButton(this, "lockc", 30f, 0xFF262626.toInt()).apply {
+            setOnClickListener { prefs.put(Prefs.K_ROTATE, !prefs.rotateEnabled); onCameraChanged(); showHint(if (prefs.rotateEnabled) "Canvas rotation unlocked" else "Canvas rotation locked") }
+        }
+        rotText = UI.label(this, "0°", 14f, 0xFF262626.toInt()).apply { setPadding(0, d(10f), d(8f), d(10f)) }
+        c3.addView(zoomText); c3.addView(lockBtn); c3.addView(rotText)
+        statusRight.addView(c3)
+        val c4 = cluster()
+        c4.addView(sbtn("penlab") { startActivity(Intent(this, PenLabActivity::class.java)) })
+        c4.addView(sbtn("export") { showExport() })
+        c4.addView(sbtn("settings") { toggleSheet() })
+        c4.addView(sbtn("help") { togglePanel("help") })
+        statusRight.addView(c4, LinearLayout.LayoutParams(UI.WRAP, UI.WRAP).apply { marginStart = d(10f) })
+        root.addView(statusRight, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or Gravity.END).apply { topMargin = d(8f); marginEnd = d(14f) })
 
-        // ---- tool wheel + undo/redo
+        // ---- layers list (under the wheel)
+        layersHolder = FrameLayout(this)
+        root.addView(layersHolder, FrameLayout.LayoutParams(d(260f), UI.MATCH, Gravity.START).apply { topMargin = d(300f); bottomMargin = d(12f); marginStart = d(12f) })
+
+        // ---- tool wheel
         wheel = ToolWheelView(this)
         wireWheel(wheel)
         wheel.onSlotTap = { i -> onWheelSlot(i) }
         wheel.onSlotLongPress = { i -> assignWheelSlot(i) }
-        wheel.scaleFactor = prefs.sp.getFloat("wheel_scale", if (dm.widthPixels / dm.density < 600) 0.8f else 1f)
+        wheel.onUndo = { canvas.undo() }
+        wheel.onRedo = { canvas.redo() }
+        wheel.scaleFactor = prefs.sp.getFloat("wheel_scale", if (dm.widthPixels / dm.density < 600) 0.85f else 1f)
         wheel.onScaleChanged = { f -> prefs.put("wheel_scale", f) }
-        wheel.onDrag = { dx, dy -> wheelGroup.translationX += dx; wheelGroup.translationY += dy }
+        wheel.onDrag = { dx, dy -> wheelGroup.translationX += dx; wheelGroup.translationY += dy; closePopup() }
         wheel.onDragEnd = { onWheelDropped() }
-        wheelGroup = UI.hbox(this)
-        wheelGroup.gravity = Gravity.BOTTOM
-        wheelGroup.addView(wheel)
-        val ur = UI.vbox(this)
-        ur.setPadding(0, 0, 0, d(6f))
-        undoBtn = IconButton(this, "undo", 46f).apply { background = UI.ripple(this@CanvasActivity, UI.rounded(0xFAFAFAFB.toInt(), UI.dpf(this@CanvasActivity, 23f), d(1f), 0x14000000)); elevation = UI.dpf(this@CanvasActivity, 3f); setOnClickListener { canvas.undo() } }
-        redoBtn = IconButton(this, "redo", 46f).apply { background = UI.ripple(this@CanvasActivity, UI.rounded(0xFAFAFAFB.toInt(), UI.dpf(this@CanvasActivity, 23f), d(1f), 0x14000000)); elevation = UI.dpf(this@CanvasActivity, 3f); setOnClickListener { canvas.redo() } }
-        ur.addView(undoBtn, LinearLayout.LayoutParams(UI.WRAP, UI.WRAP).apply { bottomMargin = d(8f) })
-        ur.addView(redoBtn)
-        wheelGroup.addView(ur, LinearLayout.LayoutParams(UI.WRAP, UI.WRAP).apply { marginStart = d(2f) })
+        wheelGroup = FrameLayout(this)
+        wheelGroup.addView(wheel, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP))
         root.addView(wheelGroup, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or Gravity.START))
-        wheelGroup.translationX = prefs.sp.getFloat("wheel_x", UI.dpf(this, 8f))
-        wheelGroup.translationY = prefs.sp.getFloat("wheel_y", UI.dpf(this, 56f))
+        wheelGroup.translationX = prefs.sp.getFloat("wheel_x", df(30f))
+        wheelGroup.translationY = prefs.sp.getFloat("wheel_y", df(54f))
 
-        // ---- floating layers menu
-        sidebarHolder = FrameLayout(this)
-        root.addView(sidebarHolder, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or Gravity.END).apply { topMargin = d(60f); marginEnd = d(10f) })
-        sidebarHolder.translationX = prefs.sp.getFloat("layers_x", 0f)
-        sidebarHolder.translationY = prefs.sp.getFloat("layers_y", 0f)
-        if (prefs.sp.getBoolean("sidebar", dm.widthPixels / dm.density >= 600)) showSidebar(true)
+        // ---- selection toolbar (floats above the selection) + options bar (bottom)
+        selToolbar = UI.hbox(this)
+        selToolbar.background = UI.rounded(0xFAFFFFFF.toInt(), df(8f), d(1f), 0x14000000)
+        selToolbar.elevation = df(6f)
+        selToolbar.setPadding(d(4f), 0, d(4f), 0)
+        selToolbar.visibility = View.GONE
+        fun tb(icon: String, f: () -> Unit) = selToolbar.addView(IconButton(this, icon, 46f, 0xFF1E1E1E.toInt()).apply { setOnClickListener { f() } })
+        tb("search") { canvas.zoomToSelection() }
+        tb("sparkle") { if (!canvas.refineSelection()) showHint("That doesn't look like handwriting") else showHint("Handwriting refined") }
+        tb("lockc") { canvas.lockSelectionLayers(); showHint("Layer locked") }
+        tb("copy") { canvas.duplicateSelection() }
+        tb("trash") { canvas.deleteSelection() }
+        tb("group") { canvas.selectAllInLayer() }
+        tb("flip") { canvas.flipSelection(true) }
+        tb("send") { canvas.bringSelectionToFront(); showHint("Brought to front") }
+        tb("recolor") { canvas.recolorSelection(slotColors[currentSlot]) }
+        root.addView(selToolbar, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or Gravity.START))
 
-        // ---- selection bar
-        selectionBar = UI.hbox(this)
-        selectionBar.background = UI.card(this)
-        selectionBar.elevation = UI.dpf(this, 6f)
-        selectionBar.visibility = View.GONE
-        fun sel(icon: String, f: () -> Unit) = selectionBar.addView(IconButton(this, icon).apply { setOnClickListener { f() } })
-        selectionBar.addView(UI.label(this, "Selection", 12f, UI.SUB, true).apply { setPadding(d(12f), 0, d(4f), 0) })
-        sel("sparkle") { if (!canvas.refineSelection()) showHint("That doesn't look like handwriting") else showHint("Handwriting refined") }
-        sel("trash") { canvas.deleteSelection() }
-        sel("copy") { canvas.duplicateSelection() }
-        sel("recolor") { canvas.recolorSelection(slotColors[currentSlot]) }
-        sel("front") { canvas.bringSelectionToFront() }
-        sel("selectall") { canvas.selectAllInLayer() }
-        sel("check") { canvas.clearSelection() }
-        root.addView(selectionBar, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = d(24f) })
+        selOptions = UI.hbox(this)
+        selOptions.background = UI.rounded(0xF2F4F4F4.toInt(), df(8f), d(1f), 0x14000000)
+        selOptions.elevation = df(6f)
+        selOptions.visibility = View.GONE
+        fun opt(icon: String, label: String, f: (TextView) -> Unit): TextView {
+            val row = UI.hbox(this)
+            row.setPadding(d(14f), d(4f), d(16f), d(4f))
+            row.addView(com.akshit.folio.ui.IconView(this, icon, 28f))
+            val t = UI.label(this, label, 15f, 0xFF262626.toInt()).apply { setPadding(d(8f), 0, 0, 0) }
+            row.addView(t)
+            row.setOnClickListener { f(t); paintOptions() }
+            selOptions.addView(row)
+            return t
+        }
+        rotateOpt = opt("rotateoff", "Rotate Off") { t -> canvas.selRotateOn = !canvas.selRotateOn; t.text = if (canvas.selRotateOn) "Rotate On" else "Rotate Off" }
+        stretchOpt = opt("stretch", "Stretch") { canvas.selStretch = !canvas.selStretch }
+        opt("filter", "Filters") { showFilters() }
+        root.addView(selOptions, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = d(26f) })
 
         // ---- hint
         hint = UI.label(this, "", 13f, Color.WHITE, true).apply {
-            background = UI.rounded(0xE62A2B31.toInt(), UI.dpf(this@CanvasActivity, 18f))
+            background = UI.rounded(0xE62A2B31.toInt(), df(18f))
             setPadding(d(16f), d(8f), d(16f), d(8f))
             visibility = View.GONE
         }
-        root.addView(hint, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = d(90f) })
+        root.addView(hint, FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = d(96f) })
 
         panelHost = FrameLayout(this)
         root.addView(panelHost, FrameLayout.LayoutParams(UI.MATCH, UI.MATCH))
         setContentView(root)
         val bar = prefs.sp.getInt("bar_mode", 0)
         if (bar != 0) setBarMode(true, bar < 0)
+        if (prefs.sp.getBoolean("layers_open", dm.widthPixels / dm.density >= 600)) showLayers(true)
         updateUndo()
         onCameraChanged()
     }
 
-    private fun wireWheel(w: ToolWheelView) {
-        w.sizeLabel = { t -> if (canvas.tool == CanvasView.Tool.ERASER) "${BrushPanel.tToSize(t).toInt()}px" else fmtSize(BrushPanel.tToSize(t)) }
-        w.onCenterTap = { togglePanel("color") }
-        w.onCenterLongPress = { openBrushPanel() }
-        w.onSize = { t ->
-            val s = BrushPanel.tToSize(t)
-            if (canvas.tool == CanvasView.Tool.ERASER) { canvas.eraserSizePx = s; prefs.put("eraser_size", s) }
-            else slots[currentSlot].size = s
-            canvas.invalidate(); refreshToolUi()
+    private var rotateOpt: TextView? = null
+    private var stretchOpt: TextView? = null
+
+    private fun paintOptions() {
+        for (i in 0 until selOptions.childCount) {
+            val v = selOptions.getChildAt(i)
+            val on = (i == 1 && canvas.selStretch) || (i == 0 && canvas.selRotateOn)
+            v.background = if (on) UI.rounded(0xFFDADADA.toInt(), df(6f)) else null
         }
-        w.onOpacity = { o -> slots[currentSlot].opacity = o }
-        w.onSmoothing = { v -> slots[currentSlot].smoothing = v; if (v >= 0.995f) showHint("Smoothing 100% · draws straight lines") }
     }
 
-    private fun fmtSize(s: Float) = if (s >= 10) "${s.toInt()}" else "%.1f".format(s)
+    private fun wireWheel(w: ToolWheelView) {
+        w.onCenterTap = { toggleColorFan() }
+        w.onSizeTap = { openPopup("size") }
+        w.onOpacityTap = { openPopup("opacity") }
+        w.onSmoothingTap = { openPopup("smoothing") }
+    }
+
+    private fun fmtSize(s: Float) = if (s >= 10) "${s.toInt()}" else if (s >= 1) "%.1f".format(s).removeSuffix(".0") else "%.2f".format(s)
+
+    // ------------------------------------------------------------------ wheel popups
+    private fun tToSize(t: Float) = BrushPanel.tToSize(t)
+    private fun sizeToT(s: Float) = BrushPanel.sizeToT(s)
+
+    fun openPopup(which: String) {
+        closeAll()
+        val s = slots[currentSlot]
+        val eraser = canvas.tool == CanvasView.Tool.ERASER
+        val p: WheelPopup = when (which) {
+            "size" -> {
+                val base = if (eraser) 24f else BrushSpec.preset(s.type).size
+                val presets = listOf(1f, 1.5f, 2f, 3.2f).map { f -> val v = base * f; "${fmtSize(v)} ${if (eraser) "px" else "pts"}" to sizeToT(v) }
+                WheelPopup(this, "Size", "═", presets, sizeToT(if (eraser) canvas.eraserSizePx else s.size), { "${fmtSize(tToSize(it))} ${if (eraser) "px" else "pts"}" }) { t ->
+                    val v = tToSize(t)
+                    if (eraser) { canvas.eraserSizePx = v; prefs.put("eraser_size", v) } else s.size = v
+                    refreshToolUi(); canvas.invalidate()
+                }
+            }
+            "opacity" -> WheelPopup(this, "Opacity", "◐", listOf("25%" to 0.25f, "50%" to 0.5f, "75%" to 0.75f, "100%" to 1f), s.opacity, { "${(it * 100).toInt()}%" }) { t ->
+                s.opacity = t.coerceAtLeast(0.02f); refreshToolUi()
+            }
+            else -> WheelPopup(this, "Smoothing", "∿", listOf("0%" to 0f, "10%" to 0.1f, "50%" to 0.5f, "100%" to 1f), s.smoothing, { if (it >= 0.995f) "100% · straight" else "${(it * 100).toInt()}%" }) { t ->
+                s.smoothing = t; refreshToolUi()
+            }
+        }
+        val scrim = object : View(this) {
+            override fun onTouchEvent(e: MotionEvent): Boolean { if (e.actionMasked == MotionEvent.ACTION_DOWN) closePopup(); return false }
+        }
+        val host = FrameLayout(this)
+        host.addView(scrim, FrameLayout.LayoutParams(UI.MATCH, UI.MATCH))
+        val wx = wheelGroup.translationX + wheel.centreX(); val wy = wheelGroup.translationY + wheel.centreY()
+        val lp = FrameLayout.LayoutParams(d(300f), UI.WRAP, Gravity.TOP or Gravity.START)
+        p.translationX = (wx + df(52f) * wheel.scaleFactor).coerceAtMost(root.width - df(310f))
+        p.translationY = wy - df(46f)
+        host.addView(p, lp)
+        panelHost.addView(host, FrameLayout.LayoutParams(UI.MATCH, UI.MATCH))
+        popup = host
+        p.alpha = 0f; p.animate().alpha(1f).setDuration(120).start()
+    }
+
+    fun closePopup() { popup?.let { panelHost.removeView(it) }; popup = null; persistSlots() }
+
+    // ------------------------------------------------------------------ colour fan
+    fun toggleColorFan() {
+        if (colorFan != null) { closeColorFan(); return }
+        closeAll()
+        val cx = wheelGroup.translationX + wheel.centreX(); val cy = wheelGroup.translationY + wheel.centreY()
+        val fan = ColorFanView(this, cx, cy, slotColors[currentSlot], { c ->
+            setColor(c)
+            if (canvas.selectionCount() > 0) canvas.recolorSelection(c)
+        }, { closeColorFan(); setTool(CanvasView.Tool.EYEDROPPER) }, { closeColorFan() })
+        colorFan = fan
+        panelHost.addView(fan, FrameLayout.LayoutParams(UI.MATCH, UI.MATCH))
+        fan.alpha = 0f; fan.animate().alpha(1f).setDuration(140).start()
+    }
+
+    fun closeColorFan() {
+        colorFan?.let { panelHost.removeView(it) }
+        colorFan = null
+        val c = slotColors[currentSlot]
+        val l = prefs.recentColors.toMutableList(); l.remove(c); l.add(0, c); prefs.recentColors = l
+    }
 
     // ------------------------------------------------------------------ wheel tools
     private fun loadWheelTools() {
         wheelTools.clear()
         val saved = prefs.sp.getString("wheel_tools", null)?.split(",")?.mapNotNull { it.toIntOrNull() }
-        wheelTools.addAll(saved?.takeIf { it.size == 8 } ?: listOf(0, 2, 1, 3, 5, 8, 100, 101))
+        wheelTools.addAll(saved?.takeIf { it.size == 8 } ?: listOf(0, 1, 3, 2, 9, 8, 101, 100))
     }
 
-    private fun toolIcon(id: Int) = when (id) { 100 -> "eraser"; 101 -> "lasso"; 102 -> "eyedropper"; 103 -> "hand"; else -> slots[id].type.icon }
+    private fun toolIcon(id: Int) = when (id) { 100 -> "eraser"; 101 -> "cursor"; 102 -> "eyedropper"; 103 -> "hand"; else -> slots[id].type.icon }
     private fun toolLabel(id: Int) = when (id) { 100 -> "Eraser"; 101 -> "Selection"; 102 -> "Eyedropper"; 103 -> "Pan"; else -> slots[id].type.label }
 
     private fun isActive(id: Int): Boolean = when (id) {
@@ -259,6 +370,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
     private fun onWheelSlot(i: Int) {
         val id = wheelTools.getOrNull(i) ?: return
+        closeAll()
         when (id) {
             100 -> if (canvas.tool == CanvasView.Tool.ERASER) togglePanel("eraser") else setTool(CanvasView.Tool.ERASER)
             101 -> setTool(CanvasView.Tool.LASSO)
@@ -272,25 +384,30 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         val ids = slots.indices.toList() + listOf(100, 101, 102, 103)
         AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
             .setTitle("Tool for this slot")
-            .setItems(ids.map { toolLabel(it) }.toTypedArray()) { _, w ->
-                wheelTools[i] = ids[w]
-                prefs.put("wheel_tools", wheelTools.joinToString(","))
-                onWheelSlot(i)
-                rebuildBar()
-                refreshToolUi()
-            }.show()
+            .setItems(ids.map { toolLabel(it) }.toTypedArray()) { _, w -> setWheelTool(i, ids[w]) }.show()
+    }
+
+    fun setWheelTool(i: Int, id: Int) {
+        wheelTools[i] = id
+        prefs.put("wheel_tools", wheelTools.joinToString(","))
+        onWheelSlot(i)
+        rebuildBar()
+        refreshToolUi()
     }
 
     private fun onWheelDropped() {
-        val edge = UI.dpf(this, 24f)
+        val edge = df(16f)
         val x = wheelGroup.translationX
         val maxX = root.width - wheelGroup.width.toFloat()
-        wheelGroup.translationX = x.coerceIn(-wheel.width * 0.3f, maxX + wheel.width * 0.3f)
-        wheelGroup.translationY = wheelGroup.translationY.coerceIn(UI.dpf(this, 48f), root.height - wheelGroup.height * 0.6f)
+        wheelGroup.translationY = wheelGroup.translationY.coerceIn(df(40f), root.height - wheelGroup.height * 0.6f)
         when {
-            x < edge -> setBarMode(true, left = true)
-            x > maxX - edge -> setBarMode(true, left = false)
-            else -> { prefs.put("wheel_x", wheelGroup.translationX); prefs.put("wheel_y", wheelGroup.translationY) }
+            x < -wheel.width * 0.25f + edge -> setBarMode(true, left = true)
+            x > maxX + wheel.width * 0.25f - edge -> setBarMode(true, left = false)
+            else -> {
+                wheelGroup.translationX = x.coerceIn(-wheel.width * 0.2f, maxX + wheel.width * 0.2f)
+                prefs.put("wheel_x", wheelGroup.translationX); prefs.put("wheel_y", wheelGroup.translationY)
+                positionLayers()
+            }
         }
     }
 
@@ -301,16 +418,16 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         if (!on) {
             prefs.put("bar_mode", 0)
             wheelGroup.visibility = if (uiHidden) View.GONE else View.VISIBLE
-            wheelGroup.translationX = UI.dpf(this, 8f); wheelGroup.translationY = UI.dpf(this, 56f)
+            wheelGroup.translationX = df(30f); wheelGroup.translationY = df(54f)
             prefs.put("wheel_x", wheelGroup.translationX); prefs.put("wheel_y", wheelGroup.translationY)
-            refreshToolUi(); return
+            positionLayers(); refreshToolUi(); return
         }
         prefs.put("bar_mode", if (left) -1 else 1)
         wheelGroup.visibility = View.GONE
         val col = UI.vbox(this)
         col.gravity = Gravity.CENTER_HORIZONTAL
-        col.setPadding(UI.dp(this, 3f), UI.dp(this, 4f), UI.dp(this, 3f), UI.dp(this, 6f))
-        val mw = ToolWheelView(this).apply { compact = true; scaleFactor = 0.5f }
+        col.setPadding(d(3f), d(6f), d(3f), d(6f))
+        val mw = ToolWheelView(this).apply { compact = true; scaleFactor = 0.64f }
         wireWheel(mw)
         miniWheel = mw
         col.addView(mw)
@@ -320,22 +437,21 @@ class CanvasActivity : Activity(), CanvasView.Listener {
             sv.setOnLongClickListener { assignWheelSlot(i); true }
             barSlots.add(sv); col.addView(sv)
         }
-        col.addView(View(this).apply { setBackgroundColor(UI.DIV) }, LinearLayout.LayoutParams(UI.dp(this, 36f), UI.dp(this, 1f)).apply { topMargin = UI.dp(this@CanvasActivity, 4f); bottomMargin = UI.dp(this@CanvasActivity, 4f) })
-        col.addView(IconButton(this, "undo").apply { setOnClickListener { canvas.undo() } })
-        col.addView(IconButton(this, "redo").apply { setOnClickListener { canvas.redo() } })
+        col.addView(View(this).apply { setBackgroundColor(UI.DIV) }, LinearLayout.LayoutParams(d(36f), d(1f)).apply { topMargin = d(4f); bottomMargin = d(4f) })
+        col.addView(IconButton(this, "undo_solid").apply { setOnClickListener { canvas.undo() } })
+        col.addView(IconButton(this, "redo_solid").apply { setOnClickListener { canvas.redo() } })
         col.addView(IconButton(this, "wheel").apply { contentDescription = "wheel"; setOnClickListener { setBarMode(false) } })
         val scroll = android.widget.ScrollView(this).apply {
             isVerticalScrollBarEnabled = false
-            background = UI.card(this@CanvasActivity); elevation = UI.dpf(this@CanvasActivity, 4f)
+            background = UI.rounded(0xF2EDEDED.toInt(), df(14f)); elevation = df(4f)
             addView(col)
         }
         root.addView(scroll, root.indexOfChild(panelHost), FrameLayout.LayoutParams(UI.WRAP, UI.WRAP, Gravity.TOP or (if (left) Gravity.START else Gravity.END)).apply {
-            topMargin = UI.dp(this@CanvasActivity, 56f); bottomMargin = UI.dp(this@CanvasActivity, 8f)
-            marginStart = UI.dp(this@CanvasActivity, 8f); marginEnd = UI.dp(this@CanvasActivity, 8f)
+            topMargin = d(66f); bottomMargin = d(8f); marginStart = d(8f); marginEnd = d(8f)
         })
         barGroup = scroll
         if (uiHidden) scroll.visibility = View.GONE
-        refreshToolUi()
+        positionLayers(); refreshToolUi()
     }
 
     private fun rebuildBar() {
@@ -345,30 +461,70 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
     val isBarMode get() = barGroup != null
 
-    private fun showSidebar(show: Boolean) {
-        sidebarHolder.removeAllViews()
-        sidebar = null
+    // ------------------------------------------------------------------ layers list
+    private fun positionLayers() {
+        val lp = layersHolder.layoutParams as FrameLayout.LayoutParams
+        if (barGroup != null) { lp.topMargin = d(66f); lp.marginStart = d(92f) }
+        else { lp.topMargin = (wheelGroup.translationY + wheel.height + df(8f)).toInt().coerceAtMost(root.height / 2); lp.marginStart = d(12f) }
+        layersHolder.layoutParams = lp
+    }
+
+    fun showLayers(show: Boolean) {
+        layersHolder.removeAllViews(); layersList = null
         if (::layersBtn.isInitialized) layersBtn.isSelected = show
         if (show) {
-            val sb = com.akshit.folio.ui.LayerSidebar(this, canvas, { togglePanel("layers") }, {
-                val d = doc
-                val l = com.akshit.folio.model.Layer("Layer ${d.layers.size + 1}")
-                val at = d.activeLayer + 1
-                canvas.history.run(com.akshit.folio.model.LambdaCommand({ d.layers.add(at, l); d.activeLayer = at }, { d.layers.remove(l); d.activeLayer = (at - 1).coerceAtLeast(0) }))
-            })
-            sb.onDrag = { dx, dy -> sidebarHolder.translationX += dx; sidebarHolder.translationY += dy }
-            sb.onDragEnd = { prefs.put("layers_x", sidebarHolder.translationX); prefs.put("layers_y", sidebarHolder.translationY) }
-            sidebar = sb
-            sidebarHolder.addView(sb, FrameLayout.LayoutParams(UI.dp(this, 104f), UI.WRAP))
-            sb.refresh()
+            val l = LayersList(this, canvas, prefs, { togglePanel("bg") }, { layer -> layerMenu(layer) })
+            layersList = l
+            layersHolder.addView(l, FrameLayout.LayoutParams(UI.MATCH, UI.MATCH))
+            l.refresh()
+            root.post { positionLayers() }
         }
     }
 
-    fun toggleSidebar() {
-        val show = sidebar == null
-        prefs.put("sidebar", show)
-        showSidebar(show)
+    fun toggleLayers() {
+        val show = layersList == null
+        prefs.put("layers_open", show)
+        showLayers(show)
     }
+
+    @Suppress("unused") fun toggleSidebar() = toggleLayers()
+
+    private fun layerMenu(layer: Layer) {
+        val i = doc.layers.indexOf(layer)
+        val items = arrayOf("Rename", "Opacity…", "Duplicate", "Merge down", if (layer.locked) "Unlock" else "Lock", "Move up", "Move down", "Delete")
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle(layer.name).setItems(items) { _, w ->
+            doc.activeLayer = i
+            when (w) {
+                0 -> { val et = android.widget.EditText(this).apply { setText(layer.name) }
+                    AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle("Rename layer").setView(et)
+                        .setPositiveButton("OK") { _, _ -> layer.name = et.text.toString().ifBlank { layer.name }; layersList?.refresh() }.setNegativeButton("Cancel", null).show() }
+                1 -> togglePanel("layers")
+                4 -> { layer.locked = !layer.locked; layersList?.refresh() }
+                else -> {
+                    // reuse the full layers panel's actions
+                    val lp = LayersPanel(this, canvas, { layersList?.refresh() }, { })
+                    when (w) { 2 -> lp.duplicateActive(); 3 -> lp.mergeActiveDown(); 5 -> lp.moveActive(1); 6 -> lp.moveActive(-1); 7 -> lp.deleteActive() }
+                    canvas.invalidateContent(); layersList?.refresh()
+                }
+            }
+        }.show()
+    }
+
+    // ------------------------------------------------------------------ settings sheet
+    fun toggleSheet(tab: Int = 0) {
+        if (sheet != null) { closeSheet(); return }
+        closeAll()
+        val s = SettingsSheet(this, prefs, doc, tab, { canvas.invalidate(); layersList?.refresh() }, { closeSheet() }, { setBarMode(it) })
+        sheet = s
+        val w = minOf(d(430f), (resources.displayMetrics.widthPixels * 0.9f).toInt())
+        panelHost.addView(s, FrameLayout.LayoutParams(w, UI.MATCH, Gravity.END).apply { topMargin = d(66f); bottomMargin = d(12f); marginEnd = d(12f) })
+        s.translationX = df(40f); s.alpha = 0f
+        s.animate().translationX(0f).alpha(1f).setDuration(180).start()
+    }
+
+    fun closeSheet() { sheet?.let { panelHost.removeView(it) }; sheet = null }
+
+    fun closeAll() { closePopup(); closeColorFan(); closeSheet(); closePanel() }
 
     // ------------------------------------------------------------------ brushes & tools
     fun selectSlot(i: Int, openSettingsIfSame: Boolean = true) {
@@ -386,27 +542,41 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         canvas.tool = t
         if (t == CanvasView.Tool.ERASER) closePanel()
         refreshToolUi()
-        if (t == CanvasView.Tool.LASSO) showHint("Draw around strokes to select them")
+        if (t == CanvasView.Tool.LASSO) showHint("Tap a stroke or draw around strokes to select")
         if (t == CanvasView.Tool.EYEDROPPER) showHint("Touch the canvas to pick a color")
+    }
+
+    private fun slotFor(id: Int): ToolWheelView.Slot {
+        if (id >= 100) {
+            val kind = when (id) { 100 -> ToolWheelView.Kind.ERASER; 101 -> ToolWheelView.Kind.SELECT; 102 -> ToolWheelView.Kind.EYEDROPPER; else -> ToolWheelView.Kind.PAN }
+            return ToolWheelView.Slot(toolIcon(id), toolLabel(id), null, if (id == 100) "${canvas.eraserSizePx.toInt()}" else "", kind)
+        }
+        val b = slots[id]
+        val kind = when {
+            b.type == BrushType.MARKER || b.type == BrushType.HIGHLIGHTER || b.type == BrushType.FILL -> ToolWheelView.Kind.MARKER
+            b.type.kind == RenderKind.STAMP -> ToolWheelView.Kind.SOFT
+            else -> ToolWheelView.Kind.BRUSH
+        }
+        val mw = UI.dpf(this, 1f) * (1.2f + kotlin.math.ln(1f + b.size) * 1.1f)
+        return ToolWheelView.Slot(b.type.icon, b.type.label, slotColors[id], fmtSize(b.size), kind, mw, b.opacity)
     }
 
     private fun refreshToolUi() {
         if (!::wheel.isInitialized) return
         val t = canvas.tool
         val s = slots[currentSlot]
-        val slotList = wheelTools.map { id ->
-            ToolWheelView.Slot(toolIcon(id), toolLabel(id), if (id < 100) slotColors[id] else null,
-                if (id < 100) fmtSize(slots[id].size) else if (id == 100) "${canvas.eraserSizePx.toInt()}" else "")
-        }
+        val eraser = t == CanvasView.Tool.ERASER
+        val slotList = wheelTools.map { slotFor(it) }
         val active = wheelTools.indexOfFirst { isActive(it) }
         for (w in listOfNotNull(wheel, miniWheel)) {
             w.slots = if (w === miniWheel) emptyList() else slotList
             w.activeSlot = active
-            w.eraserMode = t == CanvasView.Tool.ERASER
+            w.eraserMode = eraser
             w.color = slotColors[currentSlot]
-            w.sizeT = BrushPanel.sizeToT(if (t == CanvasView.Tool.ERASER) canvas.eraserSizePx else s.size)
-            w.opacity = s.opacity
-            w.smoothing = s.smoothing
+            w.sizeText = if (eraser) "${canvas.eraserSizePx.toInt()} px" else "${fmtSize(s.size)} pts"
+            w.opacityText = "${(s.opacity * 100).toInt()}%"
+            w.smoothingText = "${(s.smoothing * 100).toInt()}%"
+            w.canUndo = canvas.history.canUndo(); w.canRedo = canvas.history.canRedo()
         }
         barSlots.forEachIndexed { k, b ->
             val id = wheelTools[k]
@@ -434,30 +604,60 @@ class CanvasActivity : Activity(), CanvasView.Listener {
     private var panelName: String? = null
 
     fun togglePanel(name: String) {
+        if (name == "color") { toggleColorFan(); return }
         if (panelName == name) { closePanel(); return }
+        closePopup(); closeColorFan(); closeSheet()
         when (name) {
-            "color" -> {
-                val p = ColorPickerPanel(this, prefs, slotColors[currentSlot], { c ->
-                    setColor(c)
-                    if (canvas.selection.isNotEmpty()) canvas.recolorSelection(c)
-                }, { closePanel() })
-                colorPanel = p
-                showPanel(name, p)
-            }
-            "layers" -> showPanel(name, LayersPanel(this, canvas, { sidebar?.refresh() }, { closePanel() }), nearWheel = false)
-            "bg" -> showPanel(name, BackgroundPanel(this, doc, prefs, { canvas.invalidate() }, { closePanel() }), nearWheel = false)
+            "layers" -> showPanel(name, LayersPanel(this, canvas, { layersList?.refresh() }, { closePanel() }), nearWheel = false)
+            "bg" -> showPanel(name, BackgroundPanel(this, doc, prefs, { canvas.invalidate(); layersList?.refresh() }, { closePanel() }), nearWheel = false)
             "precision" -> showPanel(name, precisionPanel(), nearWheel = false)
+            "library" -> showPanel(name, libraryPanel(), nearWheel = false)
+            "help" -> showPanel(name, helpPanel(), nearWheel = false)
             "eraser" -> {
                 val p = Panel(this, "Eraser", { closePanel() })
                 p.body.addView(UI.toggle(this, "Erase whole strokes", "Off = precise vector eraser that slices strokes", canvas.eraserWhole) {
                     canvas.eraserWhole = it; prefs.put("eraser_whole", it)
                 })
-                p.body.addView(UI.slider(this, "Eraser size", 0f, 1f, BrushPanel.sizeToT(canvas.eraserSizePx), { "${BrushPanel.tToSize(it).toInt()} px" }) {
-                    canvas.eraserSizePx = BrushPanel.tToSize(it); prefs.put("eraser_size", canvas.eraserSizePx); refreshToolUi()
-                })
                 showPanel(name, p, 0.4f)
             }
         }
+    }
+
+    private fun libraryPanel(): Panel {
+        val p = Panel(this, "Brush library", { closePanel() })
+        p.body.addView(UI.label(this, "Tap a tool to put it in the active wheel slot. Long-press any wheel slot to choose its tool.", 12.5f, UI.SUB).apply { setPadding(d(4f), 0, 0, d(8f)) })
+        val activeIdx = wheelTools.indexOfFirst { isActive(it) }.coerceAtLeast(0)
+        val ids = slots.indices.toList() + listOf(100, 101, 102, 103)
+        var row: LinearLayout? = null
+        ids.forEachIndexed { k, id ->
+            if (k % 4 == 0) { row = UI.hbox(this); p.body.addView(row) }
+            val cell = UI.vbox(this).apply { gravity = Gravity.CENTER_HORIZONTAL; setPadding(0, d(8f), 0, d(8f)) }
+            cell.addView(com.akshit.folio.ui.IconView(this, toolIcon(id), 34f))
+            cell.addView(UI.label(this, toolLabel(id), 11.5f, UI.TEXT).apply { gravity = Gravity.CENTER })
+            cell.background = UI.ripple(this, UI.rounded(Color.TRANSPARENT, df(10f)))
+            cell.setOnClickListener { setWheelTool(activeIdx, id); closePanel() }
+            row!!.addView(cell, UI.lp(0, UI.WRAP, 1f))
+        }
+        return p
+    }
+
+    private fun helpPanel(): Panel {
+        val p = Panel(this, "Gestures & tips", { closePanel() })
+        val tips = listOf(
+            "Pen draws · fingers pan, pinch-zoom and rotate",
+            "Two-finger tap: undo · three-finger tap: redo",
+            "Three-finger swipe left/right: scrub through undo",
+            "Four-finger tap: hide / show the interface",
+            "Double-tap: reset zoom · two-finger double-tap: fit",
+            "Long-press with a finger: eyedropper",
+            "Draw and hold: snap to a perfect shape",
+            "Pause after writing: handwriting is tidied (one undo reverts)",
+            "Wheel: tap a slot to pick a tool, tap again for its settings, long-press to swap it",
+            "Wheel: tap the size / opacity / smoothing readouts for sliders; tap the colour dot for colours",
+            "Drag the wheel to move it, pinch it to resize, drop it on an edge to dock it as a bar",
+            "Volume keys: undo / redo (great with a buttonless pen)")
+        for (t in tips) p.body.addView(UI.label(this, "•  $t", 14f, UI.TEXT).apply { setPadding(d(4f), d(6f), 0, d(6f)) })
+        return p
     }
 
     private fun precisionPanel(): Panel {
@@ -467,54 +667,65 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         val quick = listOf(com.akshit.folio.model.Pattern.NONE to "Off", com.akshit.folio.model.Pattern.DOTS to "Dots", com.akshit.folio.model.Pattern.GRID to "Grid",
             com.akshit.folio.model.Pattern.ISOMETRIC to "Iso", com.akshit.folio.model.Pattern.LINES to "Lines", com.akshit.folio.model.Pattern.PERSPECTIVE_2 to "Persp")
         val chips = ArrayList<TextView>()
-        for ((pat, label) in quick) {
-            val c = UI.label(this, label, 12.5f, UI.TEXT, true).apply {
-                gravity = Gravity.CENTER; setPadding(0, UI.dp(this@CanvasActivity, 8f), 0, UI.dp(this@CanvasActivity, 8f))
-            }
-            fun paint() { c.background = UI.rounded(if (doc.background.pattern == pat) 0x262F7CF6 else UI.PANEL2, UI.dpf(this, 8f)); c.setTextColor(if (doc.background.pattern == pat) UI.ACCENT else UI.TEXT) }
-            paint()
+        fun paint() = chips.forEachIndexed { k, o -> val on = quick[k].first == doc.background.pattern; o.background = UI.rounded(if (on) 0xFF2B2B2B.toInt() else UI.PANEL2, df(8f)); o.setTextColor(if (on) Color.WHITE else UI.TEXT) }
+        for ((i, pair) in quick.withIndex()) {
+            val c = UI.label(this, pair.second, 12.5f, UI.TEXT, true).apply { gravity = Gravity.CENTER; setPadding(0, d(8f), 0, d(8f)) }
+            c.setOnClickListener { doc.background.pattern = quick[i].first; canvas.invalidate(); paint(); layersList?.refresh() }
             chips.add(c)
-            row.addView(c, UI.lp(0, UI.WRAP, 1f).apply { marginEnd = UI.dp(this@CanvasActivity, 4f) })
+            row.addView(c, UI.lp(0, UI.WRAP, 1f).apply { marginEnd = d(4f) })
         }
-        // repaint all chips on any click
-        chips.forEachIndexed { i, c -> c.setOnClickListener { doc.background.pattern = quick[i].first; canvas.invalidate()
-            chips.forEachIndexed { k, o -> val on = quick[k].first == doc.background.pattern; o.background = UI.rounded(if (on) 0x262F7CF6 else UI.PANEL2, UI.dpf(this, 8f)); o.setTextColor(if (on) UI.ACCENT else UI.TEXT) } } }
+        paint()
         p.body.addView(row)
-        p.body.addView(UI.button(this, "Paper, grid & perspective options…") { togglePanel("bg") }.apply {
-            (layoutParams as? LinearLayout.LayoutParams)?.topMargin = UI.dp(this@CanvasActivity, 8f)
-        })
+        p.body.addView(UI.button(this, "Paper, grid & perspective options…") { togglePanel("bg") }.apply { (layoutParams as? LinearLayout.LayoutParams)?.topMargin = d(8f) })
         p.body.addView(UI.section(this, "Guides & snapping"))
         p.body.addView(UI.toggle(this, "Shape guides", "Draw and hold to snap to a perfect line, circle, ellipse, arc, rectangle or polygon", prefs.shapeHold) { prefs.put(Prefs.K_SHAPE_HOLD, it) })
         p.body.addView(UI.toggle(this, "Refine handwriting", "Straighten and tidy writing when you pause", prefs.refineAuto) { prefs.put(Prefs.K_REFINE, it) })
-        p.body.addView(UI.toggle(this, "Canvas rotation", "Two-finger rotate (snaps to 0° / 90°)", prefs.rotateEnabled) { prefs.put(Prefs.K_ROTATE, it) })
-        p.body.addView(UI.label(this, "Tip: set Smoothing to 100% on the wheel to draw perfectly straight lines.", 12f, UI.SUB).apply { setPadding(UI.dp(this@CanvasActivity, 4f), UI.dp(this@CanvasActivity, 10f), 0, 0) })
+        p.body.addView(UI.toggle(this, "Zoom snap", "Snap to 100% when you pinch close to it", prefs.zoomSnap) { prefs.put(Prefs.K_ZOOM_SNAP, it) })
+        p.body.addView(UI.toggle(this, "Canvas rotation", "Two-finger rotate (snaps to 0° / 90°)", prefs.rotateEnabled) { prefs.put(Prefs.K_ROTATE, it); onCameraChanged() })
+        p.body.addView(UI.label(this, "Tip: Smoothing at 100% draws perfectly straight lines.", 12f, UI.SUB).apply { setPadding(d(4f), d(10f), 0, 0) })
         return p
     }
 
     fun showPanel(name: String, p: Panel, heightFraction: Float = 0.86f, nearWheel: Boolean = true) {
         closePanel()
         panelName = name
-        if (::precisionBtn.isInitialized) { precisionBtn.isSelected = name == "precision"; paperBtn.isSelected = name == "bg" }
+        if (::precisionBtn.isInitialized) { precisionBtn.isSelected = name == "precision"; libraryBtn.isSelected = name == "library" }
         currentPanel = p
-        p.alpha = 0f; p.translationY = UI.dpf(this, 12f)
+        p.alpha = 0f; p.translationY = df(10f)
         val lp = panelLayoutParams(this, !prefs.leftHanded, heightFraction, nearWheel)
-        p.maxHeightPx = minOf(lp.height, resources.displayMetrics.heightPixels - lp.topMargin - UI.dp(this, 16f))
+        if (!nearWheel) { lp.gravity = Gravity.TOP or Gravity.START; lp.topMargin = d(66f); lp.marginStart = d(if (resources.displayMetrics.widthPixels / resources.displayMetrics.density < 600) 12f else 240f) }
+        p.maxHeightPx = minOf(lp.height, resources.displayMetrics.heightPixels - lp.topMargin - d(16f))
         lp.height = UI.WRAP
         panelHost.addView(p, lp)
         p.animate().alpha(1f).translationY(0f).setDuration(160).start()
     }
 
     fun closePanel() {
-        colorPanel?.commitRecent(); colorPanel = null
         currentPanel?.let { panelHost.removeView(it) }
         currentPanel = null; panelName = null
-        if (::precisionBtn.isInitialized) { precisionBtn.isSelected = false; paperBtn.isSelected = false }
+        if (::precisionBtn.isInitialized) { precisionBtn.isSelected = false; libraryBtn.isSelected = false }
         persistSlots()
     }
 
     val openPanelName get() = panelName
     fun findPanel(): Panel? = currentPanel
     fun togglePanelBrush() = openBrushPanel()
+
+    // ------------------------------------------------------------------ selection filters
+    private fun showFilters() {
+        val items = arrayOf("Only the current colour", "Only the current brush type", "Only writing tools (pens & pencils)", "Only the active layer")
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert).setTitle("Filter selection").setItems(items) { _, w ->
+            val c = slotColors[currentSlot]; val t = slots[currentSlot].type; val layer = doc.active()
+            canvas.filterSelection { s ->
+                when (w) {
+                    0 -> (s.color and 0xFFFFFF) == (c and 0xFFFFFF)
+                    1 -> s.brush.type == t
+                    2 -> s.brush.type in setOf(BrushType.PEN, BrushType.FINELINER, BrushType.PENCIL, BrushType.TECHNICAL, BrushType.INK_BRUSH, BrushType.CALLIGRAPHY)
+                    else -> layer.strokes.any { it === s }
+                }
+            }
+        }.show()
+    }
 
     // ------------------------------------------------------------------ listener
     override fun onHistoryChanged() {
@@ -523,8 +734,8 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         handler.removeCallbacks(autosave)
         handler.postDelayed(autosave, prefs.autosaveSec * 1000L)
         if (panelName == "layers") (currentPanel as? LayersPanel)?.build()
-        handler.removeCallbacks(sidebarRefresh)
-        handler.postDelayed(sidebarRefresh, 450)
+        handler.removeCallbacks(layersRefresh)
+        handler.postDelayed(layersRefresh, 400)
     }
 
     override fun onColorPicked(color: Int) {
@@ -540,7 +751,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
             GestureAction.EYEDROPPER -> setTool(CanvasView.Tool.EYEDROPPER)
             GestureAction.LASSO -> setTool(CanvasView.Tool.LASSO)
             GestureAction.PAN -> setTool(CanvasView.Tool.PAN)
-            GestureAction.COLOR_PICKER -> togglePanel("color")
+            GestureAction.COLOR_PICKER -> toggleColorFan()
             GestureAction.BRUSH_SETTINGS -> openBrushPanel()
             GestureAction.NEXT_BRUSH -> selectSlot((currentSlot + 1) % slots.size, false)
             GestureAction.PREV_BRUSH -> selectSlot((currentSlot - 1 + slots.size) % slots.size, false)
@@ -552,16 +763,24 @@ class CanvasActivity : Activity(), CanvasView.Listener {
     override fun onToolChanged() { if (::wheel.isInitialized) refreshToolUi() }
 
     override fun onCameraChanged() {
-        if (!::zoomPill.isInitialized) return
+        if (!::zoomText.isInitialized) return
+        if (canvas.selectionCount() > 0) { showSelectionStatus(); return }
         val pct = canvas.cam.scale * 100
-        val z = when {
+        zoomText.text = when {
             pct >= 10000 -> "%.0fk%%".format(pct / 1000)
             pct >= 10 -> "%.0f%%".format(pct)
             pct >= 0.1 -> "%.1f%%".format(pct)
             else -> "%.2e%%".format(pct)
         }
-        val r = canvas.rotationDegrees()
-        zoomPill.text = if (r != 0) "$z  ·  $r°" else z
+        lockBtn.visibility = View.VISIBLE
+        lockBtn.alpha = if (prefs.rotateEnabled) 0.35f else 1f
+        rotText.text = "${canvas.rotationDegrees()}°"
+    }
+
+    private fun showSelectionStatus() {
+        zoomText.text = "W: $selW%   H: $selH%"
+        lockBtn.visibility = View.GONE
+        rotText.text = "   $selDeg°"
     }
 
     override fun onPenDetected() {
@@ -569,9 +788,23 @@ class CanvasActivity : Activity(), CanvasView.Listener {
     }
 
     override fun onSelectionChanged(count: Int) {
-        if (!::selectionBar.isInitialized) return
-        selectionBar.visibility = if (count > 0 && !uiHidden) View.VISIBLE else View.GONE
-        if (count > 0) showHint("$count stroke${if (count == 1) "" else "s"} selected · drag to move, handles scale/rotate")
+        if (!::selToolbar.isInitialized) return
+        val v = if (count > 0 && !uiHidden) View.VISIBLE else View.GONE
+        selToolbar.visibility = v; selOptions.visibility = v
+        if (count > 0) { paintOptions(); showSelectionStatus() } else onCameraChanged()
+    }
+
+    override fun onSelectionGeometry(box: RectF, wPct: Int, hPct: Int, deg: Int) {
+        if (!::selToolbar.isInitialized || selToolbar.visibility != View.VISIBLE) return
+        selW = wPct; selH = hPct; selDeg = deg
+        showSelectionStatus()
+        val tw = selToolbar.width.toFloat().takeIf { it > 0 } ?: df(400f)
+        val th = selToolbar.height.toFloat().takeIf { it > 0 } ?: df(46f)
+        var x = box.centerX() - tw / 2
+        var y = box.top - th - df(56f)
+        if (y < df(60f)) y = box.bottom + df(40f)
+        x = x.coerceIn(df(8f), root.width - tw - df(8f)); y = y.coerceIn(df(60f), root.height - th - df(90f))
+        selToolbar.translationX = x; selToolbar.translationY = y
     }
 
     override fun onShapeRecognized(kind: ShapeRecognizer.Kind) {
@@ -580,9 +813,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
     // ------------------------------------------------------------------ helpers
     private fun updateUndo() {
-        if (!::undoBtn.isInitialized) return
-        undoBtn.enabledLook = canvas.history.canUndo()
-        redoBtn.enabledLook = canvas.history.canRedo()
+        refreshToolUi()
     }
 
     fun showHint(text: String) {
@@ -596,12 +827,12 @@ class CanvasActivity : Activity(), CanvasView.Listener {
     fun toggleUi() {
         uiHidden = !uiHidden
         val v = if (uiHidden) View.GONE else View.VISIBLE
-        statusBar.visibility = v
+        statusLeft.visibility = v; statusRight.visibility = v
         if (barGroup == null) wheelGroup.visibility = v
         barGroup?.visibility = v
-        sidebarHolder.visibility = v
-        if (uiHidden) { closePanel(); selectionBar.visibility = View.GONE }
-        else if (canvas.selection.isNotEmpty()) selectionBar.visibility = View.VISIBLE
+        layersHolder.visibility = v
+        if (uiHidden) { closeAll(); selToolbar.visibility = View.GONE; selOptions.visibility = View.GONE }
+        else if (canvas.selectionCount() > 0) { selToolbar.visibility = View.VISIBLE; selOptions.visibility = View.VISIBLE }
     }
 
     val isUiHidden get() = uiHidden
@@ -711,7 +942,8 @@ class CanvasActivity : Activity(), CanvasView.Listener {
     override fun onResume() {
         super.onResume()
         canvas.invalidateContent()
-        if (::zoomPill.isInitialized) zoomPill.visibility = if (prefs.showZoom) View.VISIBLE else View.INVISIBLE
+        if (::zoomText.isInitialized) zoomText.visibility = if (prefs.showZoom) View.VISIBLE else View.INVISIBLE
+        refreshToolUi()
     }
 
     override fun onPause() {
@@ -722,7 +954,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (currentPanel != null) { closePanel(); return }
+        if (currentPanel != null || popup != null || colorFan != null || sheet != null) { closeAll(); return }
         if (canvas.selection.isNotEmpty()) { canvas.clearSelection(); return }
         save(true)
         @Suppress("DEPRECATION")

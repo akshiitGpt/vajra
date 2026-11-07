@@ -137,3 +137,114 @@ class LayerSidebar(ctx: Context, private val canvas: CanvasView, private val onO
         }
     }
 }
+
+/**
+ * Grey slider popup that opens beside the wheel (Size / Opacity / Smoothing):
+ * header, a slider with tick marks at the presets, and preset chips.
+ */
+@SuppressLint("ViewConstructor")
+class WheelPopup(
+    ctx: Context, title: String, private val glyph: String,
+    private val presets: List<Pair<String, Float>>, value: Float,
+    private val format: (Float) -> String, private val onChange: (Float) -> Unit
+) : LinearLayout(ctx) {
+    private var t = value.coerceIn(0f, 1f)
+    private val chips = ArrayList<android.widget.TextView>()
+    private val valueLabel = UI.label(ctx, format(t), 12.5f, 0xFF333333.toInt())
+    private val slider = object : View(ctx) {
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        override fun onMeasure(w: Int, h: Int) = setMeasuredDimension(MeasureSpec.getSize(w), UI.dp(context, 36f))
+        override fun onDraw(c: Canvas) {
+            val l = UI.dpf(context, 6f); val r = width - UI.dpf(context, 6f); val y = height / 2f
+            p.color = 0xFF555555.toInt(); p.strokeWidth = UI.dpf(context, 1.2f)
+            c.drawLine(l, y, r, y, p)
+            p.color = 0xFF222222.toInt(); p.strokeWidth = UI.dpf(context, 2.4f)
+            c.drawLine(l, y, l + (r - l) * t, y, p)
+            p.strokeWidth = UI.dpf(context, 1.2f); p.color = 0xFF555555.toInt()
+            for ((_, v) in presets) { val x = l + (r - l) * v; c.drawLine(x, y - UI.dpf(context, 7f), x, y + UI.dpf(context, 7f), p) }
+            p.color = 0xFF111111.toInt(); c.drawCircle(l + (r - l) * t, y, UI.dpf(context, 5.5f), p)
+        }
+        @SuppressLint("ClickableViewAccessibility")
+        override fun onTouchEvent(e: android.view.MotionEvent): Boolean {
+            parent?.requestDisallowInterceptTouchEvent(true)
+            val l = UI.dpf(context, 6f); val r = width - UI.dpf(context, 6f)
+            set(((e.x - l) / (r - l)).coerceIn(0f, 1f))
+            return true
+        }
+    }
+
+    init {
+        orientation = VERTICAL
+        background = UI.rounded(0xF0CFCFCF.toInt(), UI.dpf(ctx, 12f))
+        elevation = UI.dpf(ctx, 8f)
+        isClickable = true
+        setPadding(UI.dp(ctx, 16f), UI.dp(ctx, 12f), UI.dp(ctx, 16f), UI.dp(ctx, 12f))
+        val head = UI.hbox(ctx)
+        head.addView(UI.label(ctx, glyph, 15f, 0xFF333333.toInt(), true).apply { setPadding(0, 0, UI.dp(ctx, 10f), 0) })
+        head.addView(UI.label(ctx, title, 14f, 0xFF333333.toInt()), UI.lp(0, UI.WRAP, 1f))
+        head.addView(valueLabel)
+        addView(head)
+        addView(slider, LayoutParams(UI.MATCH, UI.WRAP).apply { topMargin = UI.dp(ctx, 4f) })
+        val row = UI.hbox(ctx)
+        for ((label, v) in presets) {
+            val chip = UI.label(ctx, label, 13f, 0xFF333333.toInt()).apply {
+                gravity = Gravity.CENTER; setPadding(UI.dp(ctx, 10f), UI.dp(ctx, 6f), UI.dp(ctx, 10f), UI.dp(ctx, 6f))
+                setOnClickListener { set(v) }
+            }
+            chips.add(chip)
+            row.addView(chip, UI.lp(0, UI.WRAP, 1f))
+        }
+        addView(row, LayoutParams(UI.MATCH, UI.WRAP).apply { topMargin = UI.dp(ctx, 2f) })
+        paintChips()
+    }
+
+    private fun set(v: Float) {
+        t = v; valueLabel.text = format(t); slider.invalidate(); paintChips(); onChange(t)
+    }
+
+    private fun paintChips() {
+        chips.forEachIndexed { i, c ->
+            val on = kotlin.math.abs(presets[i].second - t) < 0.004f
+            c.background = if (on) UI.rounded(0xFFE6E6E6.toInt(), UI.dpf(context, 6f)) else null
+        }
+    }
+}
+
+/** Horizontally scrolling row of round choices with labels underneath (paper, grid, finger action...). */
+@SuppressLint("ViewConstructor")
+class CircleChoices(ctx: Context, private val items: List<Triple<String, (Canvas, Float, Float, Float) -> Unit, Any>>, selected: Any?, private val onSelect: (Any) -> Unit) : android.widget.HorizontalScrollView(ctx) {
+    private var sel = selected
+    private val row = UI.hbox(ctx)
+    init {
+        isHorizontalScrollBarEnabled = false
+        addView(row)
+        for ((label, painter, key) in items) {
+            val col = UI.vbox(ctx).apply { gravity = Gravity.CENTER_HORIZONTAL }
+            val circle = object : View(ctx) {
+                val p = Paint(Paint.ANTI_ALIAS_FLAG)
+                override fun onMeasure(w: Int, h: Int) { val s = UI.dp(context, 74f); setMeasuredDimension(s, s) }
+                override fun onDraw(c: Canvas) {
+                    val cx = width / 2f; val cy = height / 2f; val r = width / 2f - UI.dpf(context, 4f)
+                    p.style = Paint.Style.FILL; p.color = Color.WHITE
+                    p.setShadowLayer(UI.dpf(context, 3f), 0f, UI.dpf(context, 1f), 0x33000000)
+                    c.drawCircle(cx, cy, r, p); p.clearShadowLayer()
+                    c.save(); val clip = android.graphics.Path(); clip.addCircle(cx, cy, r, android.graphics.Path.Direction.CW); c.clipPath(clip)
+                    painter(c, cx, cy, r); c.restore()
+                    if (sel == key) { p.style = Paint.Style.STROKE; p.strokeWidth = UI.dpf(context, 2.5f); p.color = 0xFF111111.toInt(); c.drawCircle(cx, cy, r, p) }
+                }
+            }
+            col.addView(circle)
+            col.addView(UI.label(ctx, label, 13f, if (sel == key) UI.TEXT else UI.SUB).apply { gravity = Gravity.CENTER; setPadding(0, UI.dp(ctx, 6f), 0, 0) })
+            col.setOnClickListener { sel = key; onSelect(key); refresh() }
+            circle.setOnClickListener { col.performClick() }
+            row.addView(col, LayoutParams(UI.dp(ctx, 96f), UI.WRAP))
+        }
+    }
+    private fun refresh() {
+        for (i in 0 until row.childCount) {
+            val col = row.getChildAt(i) as LinearLayout
+            col.getChildAt(0).invalidate()
+            (col.getChildAt(1) as android.widget.TextView).setTextColor(if (sel == items[i].third) UI.TEXT else UI.SUB)
+        }
+    }
+}

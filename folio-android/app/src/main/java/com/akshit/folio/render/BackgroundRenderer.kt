@@ -35,8 +35,34 @@ class BackgroundRenderer {
         return i + 1
     }
 
+    private var paperTex: android.graphics.BitmapShader? = null
+    private val texPaint = Paint()
+
+    /** Soft "rippled" paper tooth, tiled. Screen-space so it never shimmers while zooming. */
+    private fun texture(): android.graphics.BitmapShader {
+        paperTex?.let { return it }
+        val n = 256
+        val px = IntArray(n * n)
+        var seed = 424242
+        val coarse = FloatArray(33 * 33) { seed = seed * 1103515245 + 12345; ((seed ushr 8) and 0xFFFF) / 65535f }
+        fun cv(x: Int, y: Int) = coarse[(y % 32) * 33 + (x % 32)]
+        for (y in 0 until n) for (x in 0 until n) {
+            seed = seed * 1103515245 + 12345
+            val fine = ((seed ushr 8) and 0xFF) / 255f
+            val gx = x / 8f; val gy = y / 8f
+            val x0 = gx.toInt(); val y0 = gy.toInt(); val fx = gx - x0; val fy = gy - y0
+            val v = (cv(x0, y0) * (1 - fx) + cv(x0 + 1, y0) * fx) * (1 - fy) + (cv(x0, y0 + 1) * (1 - fx) + cv(x0 + 1, y0 + 1) * fx) * fy
+            val m = 0.6f * v + 0.4f * fine
+            val a = (m * 34).toInt().coerceIn(0, 255)
+            px[y * n + x] = android.graphics.Color.argb(a, if (m > 0.5f) 255 else 0, if (m > 0.5f) 255 else 0, if (m > 0.5f) 255 else 0)
+        }
+        val bmp = android.graphics.Bitmap.createBitmap(px, n, n, android.graphics.Bitmap.Config.ARGB_8888)
+        return android.graphics.BitmapShader(bmp, android.graphics.Shader.TileMode.REPEAT, android.graphics.Shader.TileMode.REPEAT).also { paperTex = it }
+    }
+
     fun draw(c: Canvas, cam: Camera, bg: BackgroundSpec, density: Float) {
         c.drawColor(bg.paperColor)
+        if (bg.texture) { texPaint.shader = texture(); c.drawPaint(texPaint) }
         if (bg.pattern == Pattern.NONE) return
         val lineColor = bg.lineColor
         val baseA = bg.lineAlpha.coerceIn(0f, 1f)

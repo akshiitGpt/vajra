@@ -15,7 +15,7 @@ import java.util.UUID
 /** Binary on-disk format. Compact, versioned and fast to load. */
 object DocumentIO {
     private const val MAGIC = 0x464F4C49 // "FOLI"
-    private const val VERSION = 1
+    private const val VERSION = 2
 
     fun write(doc: Document, out: DataOutputStream) {
         out.writeInt(MAGIC); out.writeInt(VERSION)
@@ -26,6 +26,7 @@ object DocumentIO {
         out.writeInt(b.pattern.ordinal); out.writeFloat(b.spacing); out.writeInt(b.paperColor); out.writeInt(b.lineColor)
         out.writeFloat(b.lineAlpha); out.writeInt(b.majorEvery); out.writeBoolean(b.adaptive); out.writeFloat(b.lineWidth)
         out.writeFloat(b.vpDistance); out.writeFloat(b.horizon)
+        out.writeBoolean(b.texture)
         out.writeInt(doc.activeLayer)
         out.writeInt(doc.layers.size)
         for (l in doc.layers) {
@@ -54,6 +55,7 @@ object DocumentIO {
         b.spacing = inp.readFloat(); b.paperColor = inp.readInt(); b.lineColor = inp.readInt()
         b.lineAlpha = inp.readFloat(); b.majorEvery = inp.readInt(); b.adaptive = inp.readBoolean(); b.lineWidth = inp.readFloat()
         b.vpDistance = inp.readFloat(); b.horizon = inp.readFloat()
+        b.texture = if (ver >= 2) inp.readBoolean() else false
         doc.activeLayer = inp.readInt()
         doc.layers.clear()
         val nl = inp.readInt()

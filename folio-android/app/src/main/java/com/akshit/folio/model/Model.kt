@@ -104,10 +104,11 @@ enum class Pattern(val label: String) {
 
 class BackgroundSpec {
     var pattern = Pattern.DOTS
-    var spacing = 32f            // world units at 100% zoom
-    var paperColor = Color.rgb(250, 249, 246)
-    var lineColor = Color.rgb(120, 130, 150)
-    var lineAlpha = 0.35f
+    var spacing = 24f            // world units at 100% zoom
+    var paperColor = Color.rgb(233, 233, 231)
+    var lineColor = Color.rgb(96, 96, 96)
+    var lineAlpha = 0.5f
+    var texture = true           // subtle paper tooth
     var majorEvery = 5
     var adaptive = true          // grid subdivides/merges as you zoom (infinite grid)
     var lineWidth = 1f           // px
@@ -117,10 +118,21 @@ class BackgroundSpec {
     fun copy(): BackgroundSpec = BackgroundSpec().also {
         it.pattern = pattern; it.spacing = spacing; it.paperColor = paperColor; it.lineColor = lineColor
         it.lineAlpha = lineAlpha; it.majorEvery = majorEvery; it.adaptive = adaptive; it.lineWidth = lineWidth
-        it.vpDistance = vpDistance; it.horizon = horizon
+        it.vpDistance = vpDistance; it.horizon = horizon; it.texture = texture
     }
 
+    class Paper(val name: String, val color: Int, val texture: Boolean, val line: Int)
+
     companion object {
+        val PAPER_PRESETS = listOf(
+            Paper("Rippled", Color.rgb(233, 233, 231), true, Color.rgb(96, 96, 96)),
+            Paper("White", Color.WHITE, false, Color.rgb(120, 120, 120)),
+            Paper("Cream", Color.rgb(246, 239, 222), true, Color.rgb(140, 120, 90)),
+            Paper("Blueprint", Color.rgb(44, 110, 196), true, Color.rgb(220, 232, 250)),
+            Paper("Brown Paper", Color.rgb(150, 112, 78), true, Color.rgb(240, 225, 205)),
+            Paper("Darkprint", Color.rgb(34, 38, 46), true, Color.rgb(200, 205, 215)),
+            Paper("Night", Color.rgb(16, 16, 18), false, Color.rgb(170, 170, 170)),
+        )
         val PAPERS = intArrayOf(
             Color.rgb(250, 249, 246), Color.WHITE, Color.rgb(246, 239, 222), Color.rgb(232, 232, 230),
             Color.rgb(210, 190, 160), Color.rgb(28, 63, 120), Color.rgb(48, 50, 54), Color.rgb(18, 18, 20)
