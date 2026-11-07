@@ -15,6 +15,8 @@ ASSERT PASS palm.onlyPenStrokes strokes=2
 ASSERT PASS palm.rejectedContacts rejected=4
 ASSERT PASS palm.noPanFromPalm dx=0.0
 ASSERT PASS palm.fingerPansNotDraws strokes=2 dx=247.5
+ASSERT PASS pen.squeezeBringsWheel wheel=(1116,652) pen=(1116,652)
+ASSERT PASS pen.slideGrowsBrush size 4.0 -> 5.619712
 ASSERT PASS shape.circle got=CIRCLE
 ASSERT PASS shape.rectangle got=RECTANGLE
 ASSERT PASS shape.line got=LINE
@@ -25,8 +27,9 @@ ASSERT PASS eyedropper.picksRed picked=#ffee9d98
 ASSERT PASS layers.added layers=2
 ASSERT PASS layers.autoSorted layers=[Layer 1, Pen, Marker, Watercolor, Pencil]
 ASSERT PASS handwriting.autoRefined refined=1
-ASSERT PASS handwriting.baselineStraight before=-7.9 after=-0.9
-ASSERT PASS handwriting.spacingEven gapSpread 38.38063->10.386089
+ASSERT PASS handwriting.baselineStraight before=-7.9 after=-0.2
+ASSERT PASS handwriting.spacingEven gapSpread 37.36177->10.106305
 ASSERT PASS handwriting.undoRestores undo=12
-DEMO DONE pass=28 fail=0
-PASS: 28  FAIL: 0
+ASSERT PASS handwriting.slopedTwoLinesRefined refinedLines=2 lastAfter=-0.04213563283210961
+DEMO DONE pass=31 fail=0
+PASS: 31  FAIL: 0

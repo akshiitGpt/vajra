@@ -45,6 +45,10 @@ ASSERT PASS palm.noPanFromPalm dx=0.0
 ASSERT PASS palm.fingerPansNotDraws strokes=2 dx=247.5
 SHOT:19_palm_rejection
 SHOT:20_palm_overlay_while_writing
+STEP Pen squeeze → wheel to pen · slide → brush size
+ASSERT PASS pen.squeezeBringsWheel wheel=(1116,652) pen=(1116,652)
+SHOT:19b_squeeze_wheel_to_pen
+ASSERT PASS pen.slideGrowsBrush size 4.0 -> 5.619712
 STEP Draw & hold → perfect shapes
 ASSERT PASS shape.circle got=CIRCLE
 ASSERT PASS shape.rectangle got=RECTANGLE
@@ -73,10 +77,14 @@ SHOT:25d_settings_interaction
 STEP Handwriting refinement (like Apple Notes)
 SHOT:26b_handwriting_before
 ASSERT PASS handwriting.autoRefined refined=1
-ASSERT PASS handwriting.baselineStraight before=-7.9 after=-0.9
-ASSERT PASS handwriting.spacingEven gapSpread 38.38063->10.386089
+ASSERT PASS handwriting.baselineStraight before=-7.9 after=-0.2
+ASSERT PASS handwriting.spacingEven gapSpread 37.36177->10.106305
 SHOT:26c_handwriting_refined
 ASSERT PASS handwriting.undoRestores undo=12
+STEP Two sloped lines → each refined
+SHOT:26d_sloped_lines_before
+ASSERT PASS handwriting.slopedTwoLinesRefined refinedLines=2 lastAfter=-0.04213563283210961
+SHOT:26e_sloped_lines_refined
 STEP A little sketch
 SHOT:26_sketch
-DEMO DONE pass=28 fail=0
+DEMO DONE pass=31 fail=0
