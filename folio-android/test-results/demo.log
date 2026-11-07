@@ -3,11 +3,13 @@ DEMO START all size=1800.0x1125.0 density=1.5
 STEP All 13 brush engines · pressure + tilt
 ASSERT PASS brushes.strokeCount got=13 expected=13
 SHOT:01_all_brushes
-STEP Color wheel · sliders · palettes
-SHOT:02_color_wheel
-SHOT:03_color_sliders
-SHOT:04_color_palettes
+STEP Color fan · palette · HSL · RGB
+SHOT:02_color_fan_palette
+SHOT:03_color_fan_hsl
+SHOT:04_color_fan_rgb
 ASSERT PASS color.applied color=#ff1e88e5
+SHOT:04b_wheel_size_popup
+SHOT:04c_wheel_opacity_popup
 STEP Pro brush settings
 SHOT:05_brush_pro_settings
 SHOT:06_brush_pro_settings_more
@@ -62,6 +64,12 @@ ASSERT PASS eyedropper.picksRed picked=#ffee9d98
 STEP Layers
 ASSERT PASS layers.added layers=2
 SHOT:25_layers_panel
+STEP Automatic layer sorting
+ASSERT PASS layers.autoSorted layers=[Layer 1, Pen, Marker, Watercolor, Pencil]
+SHOT:25b_layers_automatic_sorting
+STEP Settings sheet
+SHOT:25c_settings_workspace
+SHOT:25d_settings_interaction
 STEP Handwriting refinement (like Apple Notes)
 SHOT:26b_handwriting_before
 ASSERT PASS handwriting.autoRefined refined=1
@@ -71,4 +79,4 @@ SHOT:26c_handwriting_refined
 ASSERT PASS handwriting.undoRestores undo=12
 STEP A little sketch
 SHOT:26_sketch
-DEMO DONE pass=27 fail=0
+DEMO DONE pass=28 fail=0

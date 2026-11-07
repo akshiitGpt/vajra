@@ -23,9 +23,10 @@ ASSERT PASS eraser.slices strokes=6
 ASSERT PASS lasso.selects selected=3
 ASSERT PASS eyedropper.picksRed picked=#ffee9d98
 ASSERT PASS layers.added layers=2
+ASSERT PASS layers.autoSorted layers=[Layer 1, Pen, Marker, Watercolor, Pencil]
 ASSERT PASS handwriting.autoRefined refined=1
 ASSERT PASS handwriting.baselineStraight before=-7.9 after=-0.9
 ASSERT PASS handwriting.spacingEven gapSpread 38.38063->10.386089
 ASSERT PASS handwriting.undoRestores undo=12
-DEMO DONE pass=27 fail=0
-PASS: 27  FAIL: 0
+DEMO DONE pass=28 fail=0
+PASS: 28  FAIL: 0
