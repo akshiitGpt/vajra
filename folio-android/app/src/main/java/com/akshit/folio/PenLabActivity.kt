@@ -37,13 +37,17 @@ class PenLabActivity : Activity() {
         head.setPadding(UI.dp(this, 8f), UI.dp(this, 8f), UI.dp(this, 16f), UI.dp(this, 8f))
         head.addView(IconButton(this, "back").apply { setOnClickListener { finish() } })
         head.addView(UI.label(this, "Pen Lab", 22f, UI.TEXT, true), UI.lp(0, UI.WRAP, 1f))
-        head.addView(UI.button(this, "Clear") { pad.clear() })
+        learnBtn = UI.button(this, "Learn a pen gesture", primary = true) { startLearning() }
+        head.addView(learnBtn)
+        head.addView(UI.button(this, "Clear") { pad.clear() }.apply { (layoutParams as? android.widget.LinearLayout.LayoutParams)?.marginStart = UI.dp(this@PenLabActivity, 8f) },
+            android.widget.LinearLayout.LayoutParams(UI.WRAP, UI.WRAP).apply { marginStart = UI.dp(this@PenLabActivity, 8f) })
         root.addView(head)
         val split = UI.hbox(this)
         val side = UI.vbox(this, 12f)
         info = UI.label(this, "Touch or hover with the pen…", 13f, UI.TEXT).apply { typeface = android.graphics.Typeface.MONOSPACE }
         log = UI.label(this, "", 11.5f, UI.SUB).apply { typeface = android.graphics.Typeface.MONOSPACE }
         side.addView(info)
+        side.addView(UI.label(this, "Squeeze or slide your Focus Pen here. Every key, button, scroll and axis event is logged. Tap “Learn a pen gesture”, do the gesture once, and pick what it should do on the canvas.", 12.5f, UI.SUB).apply { setPadding(0, UI.dp(this@PenLabActivity, 10f), 0, 0) })
         side.addView(UI.section(this, "Event log (buttons, keys, Xiaomi extras)"))
         side.addView(log)
         side.addView(UI.section(this, "Input devices"))
@@ -83,16 +87,64 @@ class PenLabActivity : Activity() {
 
     fun setInfo(s: String) { info.text = s }
 
+    // ---------------- learn mode: the next unknown pen event gets mapped to an action
+    private var learning = false
+    private lateinit var learnBtn: android.widget.TextView
+    private val baseAxes = HashMap<Int, Float>()
+
+    private fun startLearning() {
+        learning = true; baseAxes.clear()
+        learnBtn.text = "Waiting… squeeze / slide / press your pen"
+        addLog("LEARN: do the pen gesture now")
+    }
+
+    private fun learnedKey(code: Int) {
+        learning = false; learnBtn.text = "Learn a pen gesture"
+        val prefs = com.akshit.folio.core.Prefs(this)
+        val opts = com.akshit.folio.core.GestureAction.entries.toList()
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
+            .setTitle("Got ${KeyEvent.keyCodeToString(code)} — what should it do?")
+            .setItems(opts.map { it.label }.toTypedArray()) { _, w -> prefs.setPenKeyAction(code, opts[w]); addLog("MAPPED ${KeyEvent.keyCodeToString(code)} → ${opts[w].label}") }
+            .setNegativeButton("Cancel", null).show()
+    }
+
+    private fun learnedAxis(axis: Int) {
+        learning = false; learnBtn.text = "Learn a pen gesture"
+        val prefs = com.akshit.folio.core.Prefs(this)
+        prefs.put(com.akshit.folio.core.Prefs.K_SLIDE_AXIS, axis)
+        addLog("MAPPED axis ${MotionEvent.axisToString(axis)} → slide (choose what slide does in Settings)")
+        android.widget.Toast.makeText(this, "Slide learned on ${MotionEvent.axisToString(axis)}", android.widget.Toast.LENGTH_LONG).show()
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode != KeyEvent.KEYCODE_BACK) {
-            addLog("KEY ${KeyEvent.keyCodeToString(event.keyCode)} ${if (event.action == KeyEvent.ACTION_DOWN) "down" else "up"} src=0x${Integer.toHexString(event.source)} dev=${event.device?.name}")
+            addLog("KEY ${KeyEvent.keyCodeToString(event.keyCode)} (${event.keyCode}) scan=${event.scanCode} ${if (event.action == KeyEvent.ACTION_DOWN) "down" else "up"} src=0x${Integer.toHexString(event.source)} dev=${event.device?.name}")
+            if (learning && event.action == KeyEvent.ACTION_DOWN) { learnedKey(event.keyCode); return true }
+            if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP || event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) return super.dispatchKeyEvent(event)
+            return true // swallow so pen keys don't trigger system actions while testing
         }
         return super.dispatchKeyEvent(event)
     }
 
     override fun dispatchGenericMotionEvent(ev: MotionEvent): Boolean {
-        if (ev.actionMasked == MotionEvent.ACTION_BUTTON_PRESS || ev.actionMasked == MotionEvent.ACTION_BUTTON_RELEASE) {
-            addLog("BUTTON ${MotionEvent.actionToString(ev.actionMasked)} state=0x${Integer.toHexString(ev.buttonState)}")
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_BUTTON_PRESS, MotionEvent.ACTION_BUTTON_RELEASE ->
+                addLog("BUTTON ${MotionEvent.actionToString(ev.actionMasked)} state=0x${Integer.toHexString(ev.buttonState)} actionButton=0x${Integer.toHexString(ev.actionButton)}")
+            MotionEvent.ACTION_SCROLL -> {
+                addLog("SCROLL v=${ev.getAxisValue(MotionEvent.AXIS_VSCROLL)} h=${ev.getAxisValue(MotionEvent.AXIS_HSCROLL)} src=0x${Integer.toHexString(ev.source)}")
+                if (learning) { learning = false; learnBtn.text = "Learn a pen gesture"; addLog("Slide arrives as scroll — already supported. Choose what it does in Settings.") }
+            }
+        }
+        // any unusual axis that changes (generic axes, scroll, etc.)
+        val interesting = intArrayOf(MotionEvent.AXIS_SCROLL, MotionEvent.AXIS_WHEEL, MotionEvent.AXIS_GAS, MotionEvent.AXIS_BRAKE, MotionEvent.AXIS_THROTTLE, MotionEvent.AXIS_RUDDER) +
+            IntArray(16) { MotionEvent.AXIS_GENERIC_1 + it }
+        for (a in interesting) {
+            val v = ev.getAxisValue(a)
+            val base = baseAxes.getOrPut(a) { v }
+            if (kotlin.math.abs(v - base) > 0.05f) {
+                addLog("AXIS ${MotionEvent.axisToString(a)} = ${"%.3f".format(v)}")
+                if (learning) { learnedAxis(a); break }
+            }
         }
         return super.dispatchGenericMotionEvent(ev)
     }

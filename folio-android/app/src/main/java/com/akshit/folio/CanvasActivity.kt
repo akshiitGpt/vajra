@@ -758,6 +758,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
             GestureAction.NEXT_BRUSH -> selectSlot((currentSlot + 1) % slots.size, false)
             GestureAction.PREV_BRUSH -> selectSlot((currentSlot - 1 + slots.size) % slots.size, false)
             GestureAction.TOGGLE_LAST_BRUSH -> selectSlot(lastSlot, false)
+            GestureAction.SHOW_WHEEL -> bringWheelToPen()
             else -> canvas.performAction(action)
         }
     }
@@ -924,7 +925,90 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         }
     }
 
+    /** Handles pen keys (buttons / squeeze / learned codes). Returns true if consumed. */
+    fun handlePenKey(event: KeyEvent): Boolean {
+        val code = event.keyCode
+        if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN) return false
+        val act = prefs.penKeyAction(code) ?: return false
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+            lastPenKey = code
+            onAction(act)
+        }
+        return true
+    }
+
+    var lastPenKey = 0; private set
+    private var slideAccum = 0f
+
+    /** Pen slide: scroll-type events from the stylus (or a learned axis). */
+    fun handlePenSlide(amount: Float) {
+        if (amount == 0f) return
+        val s = slots[currentSlot]
+        when (prefs.slideAction) {
+            com.akshit.folio.core.SlideAction.NONE -> return
+            com.akshit.folio.core.SlideAction.BRUSH_SIZE -> {
+                if (canvas.tool == CanvasView.Tool.ERASER) canvas.eraserSizePx = (canvas.eraserSizePx * Math.pow(1.12, amount.toDouble()).toFloat()).coerceIn(2f, 400f)
+                else s.size = (s.size * Math.pow(1.12, amount.toDouble()).toFloat()).coerceIn(0.3f, 300f)
+                refreshToolUi(); showHint("Size ${if (canvas.tool == CanvasView.Tool.ERASER) "${canvas.eraserSizePx.toInt()} px" else "${fmtSize(s.size)} pts"}")
+            }
+            com.akshit.folio.core.SlideAction.OPACITY -> {
+                s.opacity = (s.opacity + 0.05f * amount).coerceIn(0.02f, 1f); refreshToolUi(); showHint("Opacity ${(s.opacity * 100).toInt()}%")
+            }
+            com.akshit.folio.core.SlideAction.ZOOM -> canvas.zoomBy(Math.pow(1.15, amount.toDouble()), animate = false)
+            com.akshit.folio.core.SlideAction.UNDO_REDO -> {
+                slideAccum += amount
+                while (slideAccum >= 1f) { slideAccum -= 1f; canvas.redo() }
+                while (slideAccum <= -1f) { slideAccum += 1f; canvas.undo() }
+            }
+        }
+        persistSlots()
+    }
+
+    private val lastAxis = HashMap<Int, Float>()
+
+    override fun dispatchGenericMotionEvent(ev: MotionEvent): Boolean {
+        val stylus = ev.isFromSource(android.view.InputDevice.SOURCE_STYLUS) || (ev.pointerCount > 0 && ev.getToolType(0) == MotionEvent.TOOL_TYPE_STYLUS)
+        if (ev.actionMasked == MotionEvent.ACTION_SCROLL && (stylus || prefs.sp.getBoolean("slide_any_source", false))) {
+            val v = ev.getAxisValue(MotionEvent.AXIS_VSCROLL) + ev.getAxisValue(MotionEvent.AXIS_HSCROLL)
+            if (v != 0f) { handlePenSlide(v); return true }
+        }
+        // a learned axis (some pens report slide/squeeze pressure on a generic axis)
+        val ax = prefs.slideAxis
+        if (ax >= 0 && stylus) {
+            val v = ev.getAxisValue(ax)
+            val prev = lastAxis[ax]
+            lastAxis[ax] = v
+            if (prev != null && kotlin.math.abs(v - prev) > 0.02f) { handlePenSlide((v - prev) * 10f) }
+        }
+        // stylus button pressed while hovering
+        if (ev.actionMasked == MotionEvent.ACTION_BUTTON_PRESS) {
+            val b = ev.actionButton
+            val act = when {
+                b and MotionEvent.BUTTON_STYLUS_PRIMARY != 0 -> prefs.action(Prefs.G_PEN_BUTTON)
+                b and MotionEvent.BUTTON_STYLUS_SECONDARY != 0 -> prefs.action(Prefs.G_PEN_BUTTON2)
+                else -> null
+            }
+            if (act != null && act != GestureAction.NONE) { onAction(act); return true }
+        }
+        return super.dispatchGenericMotionEvent(ev)
+    }
+
+    fun wheelCentreOnScreen(): Pair<Float, Float> = (wheelGroup.translationX + wheel.centreX()) to (wheelGroup.translationY + wheel.centreY())
+
+    /** Squeeze default: bring the wheel to where the pen is (like a pop-up tool palette). */
+    fun bringWheelToPen() {
+        if (barGroup != null) { showHint("Wheel is docked as a bar"); return }
+        val x = if (canvas.penX >= 0) canvas.penX else root.width / 2f
+        val y = if (canvas.penY >= 0) canvas.penY else root.height / 2f
+        val tx = (x - wheel.centreX()).coerceIn(-wheel.width * 0.2f, root.width - wheel.width * 0.8f)
+        val ty = (y - wheel.centreY()).coerceIn(df(40f), root.height - wheel.height * 0.8f)
+        wheelGroup.animate().translationX(tx).translationY(ty).setDuration(180).withEndAction {
+            prefs.put("wheel_x", wheelGroup.translationX); prefs.put("wheel_y", wheelGroup.translationY); positionLayers()
+        }.start()
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (handlePenKey(event)) return true
         if (event.action == KeyEvent.ACTION_DOWN) {
             val ctrl = event.isCtrlPressed
             when {

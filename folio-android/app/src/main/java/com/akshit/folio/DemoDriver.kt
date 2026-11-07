@@ -80,6 +80,7 @@ class DemoDriver(private val a: CanvasActivity) {
         backgrounds()
         zoomAndGestures()
         palm()
+        penExtras()
         shapes()
         eraser()
         lasso()
@@ -326,6 +327,36 @@ class DemoDriver(private val a: CanvasActivity) {
         pause(2200)
         touches(f3.subList(f3.size * 2 / 3, f3.size) + listOf(listOf(pm), emptyList()), 9)
         pause(300)
+    }
+
+    /** Focus Pen extras: squeeze (stylus tail key) brings the wheel to the pen, slide (stylus scroll) resizes the brush. */
+    private fun penExtras() {
+        step("Pen squeeze → wheel to pen · slide → brush size")
+        var size0 = 0f
+        at(30) { a.selectSlot(0, openSettingsIfSame = false); size0 = a.slots[0].size; hover(w * 0.62f, hh * 0.58f) }
+        at(60) {
+            val now = SystemClock.uptimeMillis()
+            a.dispatchKeyEvent(android.view.KeyEvent(now, now, android.view.KeyEvent.ACTION_DOWN, Prefs.KEY_STYLUS_TAIL, 0, 0, 0, 0, 0, InputDevice.SOURCE_STYLUS or InputDevice.SOURCE_KEYBOARD))
+            a.dispatchKeyEvent(android.view.KeyEvent(now, now + 30, android.view.KeyEvent.ACTION_UP, Prefs.KEY_STYLUS_TAIL, 0, 0, 0, 0, 0, InputDevice.SOURCE_STYLUS or InputDevice.SOURCE_KEYBOARD))
+        }
+        pause(600)
+        at(10) {
+            val wx = a.wheelCentreOnScreen()
+            check("pen.squeezeBringsWheel", abs(wx.first - w * 0.62f) < 60 * d && abs(wx.second - hh * 0.58f) < 60 * d, "wheel=(${wx.first.toInt()},${wx.second.toInt()}) pen=(${(w * 0.62f).toInt()},${(hh * 0.58f).toInt()})")
+        }
+        shot("19b_squeeze_wheel_to_pen")
+        at(10) {
+            repeat(3) {
+                val now = SystemClock.uptimeMillis()
+                val props = arrayOf(MotionEvent.PointerProperties().apply { id = 0; toolType = MotionEvent.TOOL_TYPE_STYLUS })
+                val coords = arrayOf(MotionEvent.PointerCoords().apply { x = w * 0.62f; y = hh * 0.58f; setAxisValue(MotionEvent.AXIS_VSCROLL, 1f) })
+                val ev = MotionEvent.obtain(now, now, MotionEvent.ACTION_SCROLL, 1, props, coords, 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_STYLUS, 0)
+                a.dispatchGenericMotionEvent(ev); ev.recycle()
+            }
+        }
+        pause(300)
+        at(10) { check("pen.slideGrowsBrush", a.slots[0].size > size0 * 1.3f, "size $size0 -> ${a.slots[0].size}") }
+        at(10) { a.slots[0].size = size0; a.setBarMode(false) }
     }
 
     private fun shapes() {

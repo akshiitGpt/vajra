@@ -22,6 +22,12 @@ enum class GestureAction(val label: String) {
     PREV_BRUSH("Previous brush"),
     PAN("Pan (hand tool)"),
     TOGGLE_LAST_BRUSH("Swap with last brush"),
+    SHOW_WHEEL("Bring the wheel to the pen"),
+}
+
+/** What sliding along the pen (scroll-type events) does. */
+enum class SlideAction(val label: String) {
+    NONE("Nothing"), BRUSH_SIZE("Brush size"), OPACITY("Opacity"), ZOOM("Zoom"), UNDO_REDO("Undo / redo")
 }
 
 enum class FingerDraw(val label: String) {
@@ -83,6 +89,18 @@ class Prefs(ctx: Context) {
     val volumeKeys get() = b(K_VOLUME, true)
     val showZoom get() = b(K_SHOW_ZOOM, true)
     val autosaveSec get() = i(K_AUTOSAVE, 5)
+
+    // ---------------- Xiaomi / stylus extra controls
+    /** Action for a pen key code (stylus buttons, squeeze, or any learned code). */
+    fun penKeyAction(code: Int): GestureAction? {
+        if (sp.contains("penkey_$code")) return GestureAction.entries.getOrNull(sp.getInt("penkey_$code", 0))
+        return DEFAULT_PEN_KEYS[code]
+    }
+    fun setPenKeyAction(code: Int, a: GestureAction) = put("penkey_$code", a.ordinal)
+    val slideAction get() = SlideAction.entries.getOrElse(i(K_SLIDE, SlideAction.BRUSH_SIZE.ordinal)) { SlideAction.BRUSH_SIZE }
+    /** A learned MotionEvent axis that the pen's slide/squeeze reports (-1 = only scroll axes). */
+    val slideAxis get() = i(K_SLIDE_AXIS, -1)
+    val learnedKeys: List<Int> get() = sp.all.keys.filter { it.startsWith("penkey_") }.mapNotNull { it.removePrefix("penkey_").toIntOrNull() }
 
     // ---------------- workspace behaviour
     val autoLayers get() = b(K_AUTO_LAYERS, true)
@@ -153,6 +171,22 @@ class Prefs(ctx: Context) {
         const val K_AUTOSAVE = "autosave"
         const val K_REFINE = "refine_auto"
         const val K_AUTO_LAYERS = "auto_layers"
+        const val K_SLIDE = "pen_slide"
+        const val K_SLIDE_AXIS = "pen_slide_axis"
+
+        // Android 14+ stylus key codes (KeyEvent.KEYCODE_STYLUS_BUTTON_*); pens such as the
+        // Focus Pen Pro may report squeeze / extra buttons through these.
+        const val KEY_STYLUS_PRIMARY = 308
+        const val KEY_STYLUS_SECONDARY = 309
+        const val KEY_STYLUS_TERTIARY = 310
+        const val KEY_STYLUS_TAIL = 311
+        val PEN_KEY_NAMES = mapOf(KEY_STYLUS_PRIMARY to "Pen button 1", KEY_STYLUS_SECONDARY to "Pen button 2",
+            KEY_STYLUS_TERTIARY to "Pen button 3", KEY_STYLUS_TAIL to "Pen squeeze / tail")
+        val DEFAULT_PEN_KEYS = mapOf(
+            KEY_STYLUS_PRIMARY to GestureAction.TOGGLE_ERASER,
+            KEY_STYLUS_SECONDARY to GestureAction.EYEDROPPER,
+            KEY_STYLUS_TERTIARY to GestureAction.UNDO,
+            KEY_STYLUS_TAIL to GestureAction.SHOW_WHEEL)
         const val K_ZOOM = "zoom_enabled"
         const val K_ZOOM_SNAP = "zoom_snap"
         const val K_FINGER_SELECT = "finger_select"

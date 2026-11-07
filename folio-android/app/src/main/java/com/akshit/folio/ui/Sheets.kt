@@ -374,6 +374,20 @@ class SettingsSheet(
                 Triple("3-finger swipe = undo scrub", prefs.action(Prefs.G_THREE_SWIPE) != GestureAction.NONE) { b: Boolean -> prefs.put(Prefs.G_THREE_SWIPE, if (b) GestureAction.UNDO.ordinal else GestureAction.NONE.ordinal) },
                 Triple("Volume keys", prefs.volumeKeys) { b: Boolean -> prefs.put(Prefs.K_VOLUME, b) }))
         }
+        section("Pen buttons, squeeze & slide") { s ->
+            sub(s, "Pen controls", "Squeeze, slide and pen buttons. If your pen does something that isn't listed, open Pen Lab → Learn and do it once.")
+            val opts = GestureAction.entries.toList()
+            for ((code, name) in Prefs.PEN_KEY_NAMES) {
+                s.addView(UI.choice(context, name, opts.map { it.label }, opts.indexOf(prefs.penKeyAction(code) ?: GestureAction.NONE).coerceAtLeast(0)) { prefs.setPenKeyAction(code, opts[it]) })
+            }
+            for (code in prefs.learnedKeys.filter { it !in Prefs.PEN_KEY_NAMES.keys }) {
+                s.addView(UI.choice(context, "Learned: ${android.view.KeyEvent.keyCodeToString(code)}", opts.map { it.label }, opts.indexOf(prefs.penKeyAction(code) ?: GestureAction.NONE).coerceAtLeast(0)) { prefs.setPenKeyAction(code, opts[it]) })
+            }
+            val slides = com.akshit.folio.core.SlideAction.entries.toList()
+            s.addView(UI.choice(context, "Slide along the pen", slides.map { it.label }, prefs.slideAction.ordinal) { prefs.put(Prefs.K_SLIDE, it) })
+            s.addView(UI.button(context, "Open Pen Lab to learn a pen gesture") { context.startActivity(android.content.Intent(context, com.akshit.folio.PenLabActivity::class.java)) }
+                .apply { (layoutParams as? LayoutParams)?.topMargin = dp(8f) })
+        }
         section("Stylus & Palm", open = false) { s ->
             s.addView(UI.slider(context, "Palm size threshold", 4f, 30f, prefs.palmSizeMm, { "%.1f mm".format(it) }) { prefs.put(Prefs.K_PALM_MM, it) })
             s.addView(UI.slider(context, "Ignore touches after the pen lifts", 0f, 1500f, prefs.palmCooldownMs.toFloat(), { "${it.toInt()} ms" }) { prefs.put(Prefs.K_PALM_COOLDOWN, it.toInt()) })

@@ -170,6 +170,9 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
     // eyedropper / hover
     private var eyeX = 0f; private var eyeY = 0f; private var eyeColor = 0
     private var hoverX = 0f; private var hoverY = 0f; private var hoverVisible = false
+    /** Last known pen position on screen (hover or contact), for "bring the wheel to the pen". */
+    var penX = -1f; private set
+    var penY = -1f; private set
 
     // fps
     private var frames = 0; private var fpsT0 = 0L; private var fps = 0
@@ -384,7 +387,7 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
             markPen()
             stylusActiveUntil = SystemClock.uptimeMillis() + prefs.palmCooldownMs
             when (ev.actionMasked) {
-                MotionEvent.ACTION_HOVER_ENTER, MotionEvent.ACTION_HOVER_MOVE -> { hoverX = ev.x; hoverY = ev.y; hoverVisible = true }
+                MotionEvent.ACTION_HOVER_ENTER, MotionEvent.ACTION_HOVER_MOVE -> { hoverX = ev.x; hoverY = ev.y; hoverVisible = true; penX = ev.x; penY = ev.y }
                 MotionEvent.ACTION_HOVER_EXIT -> hoverVisible = false
             }
             if (prefs.hoverCursor) postInvalidateOnAnimation()
@@ -438,6 +441,7 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
 
     private fun onPenDown(ev: MotionEvent, idx: Int, p: Ptr) {
         markPen()
+        penX = p.x; penY = p.y
         penDown = true
         hoverVisible = false
         stylusActiveUntil = Long.MAX_VALUE
