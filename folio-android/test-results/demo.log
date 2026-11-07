@@ -60,6 +60,13 @@ ASSERT PASS eyedropper.picksRed picked=#ffee9d98
 STEP Layers
 ASSERT PASS layers.added layers=2
 SHOT:25_layers_panel
+STEP Handwriting refinement (like Apple Notes)
+SHOT:26b_handwriting_before
+ASSERT PASS handwriting.autoRefined refined=1
+ASSERT FAIL handwriting.baselineStraight before=-7.9 after=-2.2
+ASSERT PASS handwriting.spacingEven gapSpread 36.802692->10.000194
+SHOT:26c_handwriting_refined
+ASSERT PASS handwriting.undoRestores undo=12
 STEP A little sketch
 SHOT:26_sketch
-DEMO DONE pass=23 fail=0
+DEMO DONE pass=26 fail=1
