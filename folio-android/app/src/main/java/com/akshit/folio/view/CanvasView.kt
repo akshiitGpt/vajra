@@ -1067,16 +1067,19 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         else -> false
     }
 
+    private fun inksOf(strokes: List<Stroke>): List<HandwritingRefiner.Ink> {
+        val gox = strokes[0].ox; val goy = strokes[0].oy
+        return strokes.map { s -> HandwritingRefiner.Ink(FloatArray(s.n) { ((s.ox - gox) + s.x(it)).toFloat() }, FloatArray(s.n) { ((s.oy - goy) + s.y(it)).toFloat() }) }
+    }
+
     private fun queueForRefine(layer: com.akshit.folio.model.Layer, s: Stroke) {
-        if (inkLayer !== layer) { inkGroup.clear(); inkLayer = layer }
-        // a stroke far below/above the current line starts a new line: refine the old one first
+        if (inkLayer !== layer) { refineRecent(); inkGroup.clear(); inkLayer = layer }
+        // moving on to the next line: tidy the line just finished right away
         if (inkGroup.isNotEmpty()) {
-            StrokeRenderer.build(s)
-            val hs = inkGroup.map { (it.bounds.height()).toDouble() }.sorted()
-            val h = hs[hs.size / 2].coerceAtLeast(1e-9)
-            val gy = inkGroup.map { (it.worldMinY() + it.worldMaxY()) / 2 }.sorted().let { it[it.size / 2] }
-            val sy = (s.worldMinY() + s.worldMaxY()) / 2
-            if (abs(sy - gy) > 2.2 * h) { removeCallbacks(refineRunnable); refineRecent() ; inkLayer = layer }
+            val inks = inksOf(inkGroup + s)
+            if (HandwritingRefiner.isNewLine(inks.dropLast(1), inks.last())) {
+                removeCallbacks(refineRunnable); refineRecent(); inkLayer = layer
+            }
         }
         inkGroup.add(s)
         removeCallbacks(refineRunnable)
@@ -1087,17 +1090,20 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
         val layer = inkLayer ?: return
         val group = inkGroup.filter { g -> layer.strokes.any { it === g } }
         inkGroup.clear()
-        if (group.size >= 2 && mode != Mode.DRAW) refineStrokes(layer, group)
+        if (group.size < 2 || mode == Mode.DRAW) return
+        for (line in HandwritingRefiner.splitLines(inksOf(group))) {
+            if (line.size >= 2) refineStrokes(layer, line.map { group[it] })
+        }
     }
 
     /** Refines the given strokes (a line of handwriting). Returns false if they don't look like writing. */
-    fun refineStrokes(layer: com.akshit.folio.model.Layer, group: List<Stroke>): Boolean {
+    fun refineStrokes(layer: com.akshit.folio.model.Layer, group: List<Stroke>, maxAngleDeg: Float = 40f): Boolean {
         if (group.size < 2 || layer.locked) return false
         val gox = group[0].ox; val goy = group[0].oy
         val inks = group.map { s ->
             HandwritingRefiner.Ink(FloatArray(s.n) { ((s.ox - gox) + s.x(it)).toFloat() }, FloatArray(s.n) { ((s.oy - goy) + s.y(it)).toFloat() })
         }
-        val res = HandwritingRefiner.refine(inks, prefs.refineStrength) ?: return false
+        val res = HandwritingRefiner.refine(inks, prefs.refineStrength, maxAngleDeg) ?: return false
         statLastRefine = res
         val before = ArrayList(layer.strokes)
         val olds = group.map { it }
@@ -1132,10 +1138,17 @@ class CanvasView(ctx: Context, val prefs: Prefs) : View(ctx) {
 
     fun refineSelection(): Boolean {
         if (selection.isEmpty()) return false
-        val layer = doc.layers.firstOrNull { l -> l.strokes.any { it in selectionSet } } ?: return false
-        val ok = refineStrokes(layer, selection.filter { s -> layer.strokes.any { it === s } })
+        var any = false
+        for (layer in doc.layers) {
+            // keep writing order (layer order is creation order), split into lines, refine each
+            val mine = layer.strokes.filter { it in selectionSet }
+            if (mine.size < 2) continue
+            for (line in HandwritingRefiner.splitLines(inksOf(mine))) {
+                if (line.size >= 2 && refineStrokes(layer, line.map { mine[it] }, maxAngleDeg = 60f)) any = true
+            }
+        }
         clearSelection()
-        return ok
+        return any
     }
 
     // ------------------------------------------------------------------ eraser

@@ -39,7 +39,59 @@ object HandwritingRefiner {
     )
 
     /** @param strength 0 (off) .. 1 (strong). Returns null when the strokes don't look like a line of writing. */
-    fun refine(input: List<Ink>, strength: Float): Result? {
+    // ------------------------------------------------------------------ lines
+    private fun cx(i: Ink) = (i.minX() + i.maxX()) / 2
+    private fun cy(i: Ink) = (i.minY() + i.maxY()) / 2
+
+    /** Typical letter height of a group: median height of strokes that aren't dots / i-dots. */
+    fun letterHeight(inks: List<Ink>): Float {
+        val hs = inks.map { it.height() }.sorted()
+        if (hs.isEmpty()) return 1f
+        val core = hs.filter { it > hs.last() * 0.3f }
+        return core[core.size / 2].coerceAtLeast(1e-4f)
+    }
+
+    /**
+     * Does [next] start a new line after [line] (strokes in writing order)? Writing moves along a
+     * direction (any slope up to ~60°); a new line is a jump back along that direction plus a move
+     * across it, the way a hand returns to the start of the next line.
+     */
+    fun isNewLine(line: List<Ink>, next: Ink): Boolean {
+        if (line.isEmpty()) return false
+        val h = letterHeight(line)
+        val x0 = cx(line.first()); val y0 = cy(line.first())
+        // writing direction from the first stroke to the furthest one
+        var dx = 1f; var dy = 0f
+        val far = line.maxByOrNull { kotlin.math.hypot(cx(it) - x0, cy(it) - y0) }!!
+        val fl = kotlin.math.hypot(cx(far) - x0, cy(far) - y0)
+        if (fl > 1.2f * h) { dx = (cx(far) - x0) / fl; dy = (cy(far) - y0) / fl }
+        if (dx < 0.45f) { dx = 1f; dy = 0f } // not a left-to-right line: assume horizontal
+        val nx = -dy; val ny = dx // "down" across the line for y-down coordinates
+        var maxAlong = -Float.MAX_VALUE; var maxAcross = -Float.MAX_VALUE
+        for (i in line) {
+            val a = (cx(i) - x0) * dx + (cy(i) - y0) * dy
+            maxAlong = max(maxAlong, a)
+            maxAcross = max(maxAcross, (i.maxY() - y0) * ny + (cx(i) - x0) * nx)
+        }
+        val along = (cx(next) - x0) * dx + (cy(next) - y0) * dy
+        val across = (cy(next) - y0) * ny + (cx(next) - x0) * nx
+        val backJump = maxAlong - along
+        return (backJump > 1.1f * h && across > 0.55f * h) || across - maxAcross > 1.6f * h
+    }
+
+    /** Splits strokes (in writing order) into lines of writing. */
+    fun splitLines(inks: List<Ink>): List<List<Int>> {
+        val out = ArrayList<MutableList<Int>>()
+        var cur = ArrayList<Int>()
+        for (i in inks.indices) {
+            if (cur.isNotEmpty() && isNewLine(cur.map { inks[it] }, inks[i])) { out.add(cur); cur = ArrayList() }
+            cur.add(i)
+        }
+        if (cur.isNotEmpty()) out.add(cur)
+        return out
+    }
+
+    fun refine(input: List<Ink>, strength: Float, maxAngleDeg: Float = 40f): Result? {
         val k = strength.coerceIn(0f, 1f)
         if (input.size < 2 || input.size > 600 || k <= 0f) return null
         if (input.any { it.n == 0 }) return null
@@ -54,17 +106,23 @@ object HandwritingRefiner {
         // Writing is a wide band of similar sized marks; drawings are not.
         if (width < 1.6f * h) return null
         if (maxH > 4.5f * h && input.count { it.height() > 3f * h } > 1) return null
-        if (maxY - minY > max(4.5f * h, width * 0.9f)) return null
+        if (maxY - minY > max(4.5f * h, width * 0.95f)) return null
 
         val out = input.map { it.copy() }
 
         // ---------------- 1. baseline angle from the lower envelope
         val base0 = fitBaseline(out, minX, maxX, h)
         val angleBefore = Math.toDegrees(atan(base0.first.toDouble()))
-        if (abs(angleBefore) > 25) return null // deliberately angled writing / not a line
+        if (abs(angleBefore) > maxAngleDeg) return null // deliberately angled writing / not a line
         val cx = (minX + maxX) / 2; val cy = (minY + maxY) / 2
         // a straight baseline is the main win, so rotate fully from medium strength upward
-        rotateAll(out, cx, cy, -atan(base0.first) * min(1f, 0.5f + k))
+        val f = min(1f, 0.5f + k)
+        rotateAll(out, cx, cy, -atan(base0.first) * f)
+        // steep lines: the first envelope fit is biased, so re-fit and correct until level
+        repeat(3) {
+            val b = fitBaseline(out, out.minOf { it.minX() }, out.maxOf { it.maxX() }, h)
+            if (abs(Math.toDegrees(atan(b.first.toDouble()))) > 0.4) rotateAll(out, cx, cy, -atan(b.first) * f)
+        }
 
         // ---------------- words (clusters separated by gaps)
         val words = clusterWords(out, h)

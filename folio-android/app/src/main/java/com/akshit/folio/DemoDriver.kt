@@ -514,7 +514,45 @@ class DemoDriver(private val a: CanvasActivity) {
         at(10) { n = c.history.undoCount; c.undo() }
         pause(400)
         at(10) { check("handwriting.undoRestores", c.history.undoCount == n - 1, "undo=${c.history.undoCount}") }
+        slopedTwoLines()
         at(10) { a.prefs.put(Prefs.K_REFINE_DELAY, 900); a.prefs.put(Prefs.K_REFINE, false) }
+    }
+
+    /** The user's real case: two big lines written uphill (~27°), one right after the other. */
+    private fun slopedTwoLines() {
+        step("Two sloped lines → each refined")
+        resetDoc(Pattern.GRID)
+        var before = 0
+        at(10) {
+            a.prefs.put(Prefs.K_REFINE, true); a.prefs.put(Prefs.K_REFINE_DELAY, 3600); a.prefs.put(Prefs.K_REFINE_STRENGTH, 0.7f)
+            a.selectSlot(0, openSettingsIfSame = false); a.setColor(0xFF1B1B1F.toInt()); a.slots[0].size = 3f
+            before = c.statRefined
+        }
+        val h = 70f * d
+        fun sloped(x0: Float, y0: Float, letters: Int, seed0: Int): List<List<P>> {
+            val out = ArrayList<List<P>>()
+            val ux = cos(Math.toRadians(27.0)).toFloat(); val uy = -sin(Math.toRadians(27.0)).toFloat()
+            var seed = seed0
+            fun rnd(): Float { seed = seed * 1103515245 + 12345; return ((seed ushr 8) and 0xFFFF) / 65535f - 0.5f }
+            for (l in 0 until letters) {
+                val tall = l % 2 == 0
+                out.add((0 until 30).map { j ->
+                    val t = j / 29f * 2 * PI
+                    val lx = (h * 0.3f + h * 0.3f * sin(t)).toFloat() + rnd() * 3
+                    val ly = -(if (tall) 1.4f * h else h) * (1 - cos(t).toFloat()) / 2 + rnd() * 3
+                    val along = l * h * 0.75f + lx
+                    P(0, x0 + along * ux, y0 + along * uy + ly, pressure = 0.6f)
+                })
+            }
+            return out
+        }
+        for (st in sloped(w * 0.36f, hh * 0.55f, 6, 3)) penPath(st, 6)
+        for (st in sloped(w * 0.46f, hh * 0.80f, 5, 9)) penPath(st, 6)
+        at(200) { log("SHOT:26d_sloped_lines_before") }
+        pause(2200)
+        pause(2200)
+        at(10) { check("handwriting.slopedTwoLinesRefined", c.statRefined - before >= 2, "refinedLines=${c.statRefined - before} lastAfter=${c.statLastRefine?.angleAfterDeg}") }
+        shot("26e_sloped_lines_refined")
     }
 
     private fun finale() {
