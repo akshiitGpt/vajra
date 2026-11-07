@@ -229,11 +229,12 @@ class SettingsSheet(
         val head = UI.hbox(context)
         head.setPadding(0, dp(18f), 0, dp(8f))
         head.addView(UI.label(context, title, 26f, 0xFF1E1E1E.toInt()), UI.lp(0, UI.WRAP, 1f))
-        val chev = UI.label(context, if (open) "⌄" else "›", 24f, 0xFF1E1E1E.toInt())
+        val chev = IconView(context, "chev_down", 28f, 0xFF1E1E1E.toInt())
         head.addView(chev)
         val inner = UI.vbox(context)
         inner.visibility = if (open) View.VISIBLE else View.GONE
-        head.setOnClickListener { val o = inner.visibility != View.VISIBLE; inner.visibility = if (o) View.VISIBLE else View.GONE; chev.text = if (o) "⌄" else "›" }
+        head.setOnClickListener { val o = inner.visibility != View.VISIBLE; inner.visibility = if (o) View.VISIBLE else View.GONE; chev.rotation = if (o) 0f else -90f }
+        if (!open) chev.rotation = -90f
         box.addView(head); box.addView(inner)
         content(inner)
         body.addView(box)
@@ -257,8 +258,8 @@ class SettingsSheet(
             cell.addView(UI.label(context, label, 15.5f, 0xFF262626.toInt()), UI.lp(0, UI.WRAP, 1f))
             val sw = android.widget.Switch(context)
             sw.isChecked = on
-            sw.thumbTintList = android.content.res.ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()), intArrayOf(Color.WHITE, Color.WHITE))
-            sw.trackTintList = android.content.res.ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()), intArrayOf(0xFF4E6B6E.toInt(), 0xFF8A8A8A.toInt()))
+            sw.thumbTintList = android.content.res.ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()), intArrayOf(0xFF3E5C60.toInt(), Color.WHITE))
+            sw.trackTintList = android.content.res.ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()), intArrayOf(0xFF3E5C60.toInt(), 0xFF6F6F6F.toInt()))
             sw.setOnCheckedChangeListener { _, b -> f(b) }
             cell.addView(sw)
             row!!.addView(cell, UI.lp(0, UI.WRAP, 1f))

@@ -74,6 +74,7 @@ object Icons {
         "filter" to "M4 5 H20 L14 12.5 V19 L10 17 V12.5 Z",
         "cursor" to "M7 3.5 L7 19 L11 15 L14 21 L16.5 20 L13.5 14 L19 14 Z",
         "move4" to "M12 3 V21 M3 12 H21 M12 3 L9.5 5.5 M12 3 L14.5 5.5 M12 21 L9.5 18.5 M12 21 L14.5 18.5 M3 12 L5.5 9.5 M3 12 L5.5 14.5 M21 12 L18.5 9.5 M21 12 L18.5 14.5",
+        "chev_down" to "M6 9 L12 15 L18 9",
         "flip" to "M12 3 V21 M9 7 L4 17 H9 Z M15 7 L20 17 H15 Z",
     )
 

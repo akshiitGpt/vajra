@@ -193,7 +193,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
 
         // ---- layers list (under the wheel)
         layersHolder = FrameLayout(this)
-        root.addView(layersHolder, FrameLayout.LayoutParams(d(260f), UI.MATCH, Gravity.START).apply { topMargin = d(300f); bottomMargin = d(12f); marginStart = d(12f) })
+        root.addView(layersHolder, FrameLayout.LayoutParams(d(260f), UI.MATCH, Gravity.START).apply { topMargin = d(330f); bottomMargin = d(12f); marginStart = d(12f) })
 
         // ---- tool wheel
         wheel = ToolWheelView(this)
@@ -202,7 +202,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
         wheel.onSlotLongPress = { i -> assignWheelSlot(i) }
         wheel.onUndo = { canvas.undo() }
         wheel.onRedo = { canvas.redo() }
-        wheel.scaleFactor = prefs.sp.getFloat("wheel_scale", if (dm.widthPixels / dm.density < 600) 0.85f else 1f)
+        wheel.scaleFactor = prefs.sp.getFloat("wheel_scale", if (dm.widthPixels / dm.density < 600) 0.85f else 1.15f)
         wheel.onScaleChanged = { f -> prefs.put("wheel_scale", f) }
         wheel.onDrag = { dx, dy -> wheelGroup.translationX += dx; wheelGroup.translationY += dy; closePopup() }
         wheel.onDragEnd = { onWheelDropped() }
@@ -339,6 +339,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
             if (canvas.selectionCount() > 0) canvas.recolorSelection(c)
         }, { closeColorFan(); setTool(CanvasView.Tool.EYEDROPPER) }, { closeColorFan() })
         colorFan = fan
+        layersHolder.visibility = View.INVISIBLE
         panelHost.addView(fan, FrameLayout.LayoutParams(UI.MATCH, UI.MATCH))
         fan.alpha = 0f; fan.animate().alpha(1f).setDuration(140).start()
     }
@@ -346,6 +347,7 @@ class CanvasActivity : Activity(), CanvasView.Listener {
     fun closeColorFan() {
         colorFan?.let { panelHost.removeView(it) }
         colorFan = null
+        if (::layersHolder.isInitialized && !uiHidden) layersHolder.visibility = View.VISIBLE
         val c = slotColors[currentSlot]
         val l = prefs.recentColors.toMutableList(); l.remove(c); l.add(0, c); prefs.recentColors = l
     }

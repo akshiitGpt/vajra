@@ -45,15 +45,15 @@ class BackgroundRenderer {
         val px = IntArray(n * n)
         var seed = 424242
         val coarse = FloatArray(33 * 33) { seed = seed * 1103515245 + 12345; ((seed ushr 8) and 0xFFFF) / 65535f }
-        fun cv(x: Int, y: Int) = coarse[(y % 32) * 33 + (x % 32)]
+        fun cv(x: Int, y: Int) = coarse[((y % 86) % 32) * 33 + ((x % 86) % 32)]
         for (y in 0 until n) for (x in 0 until n) {
             seed = seed * 1103515245 + 12345
             val fine = ((seed ushr 8) and 0xFF) / 255f
-            val gx = x / 8f; val gy = y / 8f
+            val gx = x / 3f; val gy = y / 3f
             val x0 = gx.toInt(); val y0 = gy.toInt(); val fx = gx - x0; val fy = gy - y0
             val v = (cv(x0, y0) * (1 - fx) + cv(x0 + 1, y0) * fx) * (1 - fy) + (cv(x0, y0 + 1) * (1 - fx) + cv(x0 + 1, y0 + 1) * fx) * fy
-            val m = 0.6f * v + 0.4f * fine
-            val a = (m * 34).toInt().coerceIn(0, 255)
+            val m = 0.55f * v + 0.45f * fine
+            val a = (kotlin.math.abs(m - 0.5f) * 30).toInt().coerceIn(0, 255)
             px[y * n + x] = android.graphics.Color.argb(a, if (m > 0.5f) 255 else 0, if (m > 0.5f) 255 else 0, if (m > 0.5f) 255 else 0)
         }
         val bmp = android.graphics.Bitmap.createBitmap(px, n, n, android.graphics.Bitmap.Config.ARGB_8888)
